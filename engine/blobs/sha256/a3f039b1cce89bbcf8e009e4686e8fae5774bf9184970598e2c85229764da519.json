@@ -3,18 +3,18 @@
   "image": "alpine",
   "entries": [
     {
-      "file": "0b17c46d3719b91815a87cfb6a7a00fc991b099e8cb669ed11a9f87589bee329.wmdbase",
+      "file": "54eab7c6c882665da4254ad7e7468512d1d5f90f69eef227a8f884108598fac3.wmdbase",
       "image": "alpine",
       "ref": "docker.io/library/alpine:3.20",
       "vmKey": "4f7cf72269e2deaab6c987b8c2d25b5f7f31b6a9b8f45af34474175a470954f4",
-      "bootKey": "5f84f33b05a798a9c074194d47a29cbb60340a619f9e51f826a1624cbea74f04",
-      "headerSha256": "b98819db96747c6fa9ad58a1b589d2db411b8805faeed9ce3e64e4d89610888e",
-      "bytes": 60859640,
-      "sha256": "0b17c46d3719b91815a87cfb6a7a00fc991b099e8cb669ed11a9f87589bee329",
+      "bootKey": "3db093495e5b9bd7a735c724b1b36b28eb6f347c33fd2f82de81d115319d29ab",
+      "headerSha256": "97ad2db5d59ce6ec2dc92991d5f5a62bb0482e00a45501a8be4e660e5f03d830",
+      "bytes": 61534026,
+      "sha256": "54eab7c6c882665da4254ad7e7468512d1d5f90f69eef227a8f884108598fac3",
       "codec": "gzip",
       "level": 6,
-      "createdAt": "2026-10-14T21:47:46.092Z",
-      "rawBytes": 315251609,
+      "createdAt": "2026-10-15T05:08:39.261Z",
+      "rawBytes": 318806764,
       "machine": {
         "cpus": 1,
         "ramMiB": 1024,
@@ -24,7 +24,7 @@
         "vmSha256": "4f7cf72269e2deaab6c987b8c2d25b5f7f31b6a9b8f45af34474175a470954f4",
         "kernelSha256": "ecd94b5ea5e4deb8369fa9d55beb7a0b9ee0dfcca7b6d75e33a85ab484d55c4d",
         "initrdSha256": "c036dd01b5d68479cd1f67b103941508d3817ea1addafc8586c2bd97f25d589d",
-        "agentSha256": "b7911adcb9142bb90ea1f42f6d745d9861df8edd6cb18c168d3fcddc09cdf7ad",
+        "agentSha256": "180b3dffba20103933f4684dc8f9bddd8ea1c11dff0b1fdde70b8d931055d67b",
         "image": {
           "ref": "docker.io/library/alpine:3.20",
           "imageJsonSha256": "e37344380613fced5d9f0a46b2c86257108e485882870f7e2eb16cffe4a8483b",
@@ -32,7 +32,7 @@
             "8fa5de60bc39c0f1cb0cc108e50962134925f74c8643463e467572eac3038854"
           ]
         },
-        "wmdWeb": "26da6428b7a011de5294d2c32d695eec8c7c9763",
+        "wmdWeb": "8c4b7c8a68bc1d4b805c632ab16d116916b14bb2",
         "machine": {
           "cpus": 1,
           "ramMiB": 1024,

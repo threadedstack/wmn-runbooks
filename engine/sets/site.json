@@ -2,8 +2,8 @@
   "schema": 2,
   "wmdWeb": {
     "repo": "https://github.com/threadedstack/wmd.git",
-    "commit": "26da6428b7a011de5294d2c32d695eec8c7c9763",
-    "date": "2026-10-13T23:57:31-07:00"
+    "commit": "8c4b7c8a68bc1d4b805c632ab16d116916b14bb2",
+    "date": "2026-10-14T15:13:36-07:00"
   },
   "snapshot": true,
   "files": [
@@ -20,16 +20,16 @@
       "blob": "blobs/sha256/c036dd01b5d68479cd1f67b103941508d3817ea1addafc8586c2bd97f25d589d.gz"
     },
     {
-      "path": "images/alpine/alpine-5f84f33b05a7-4f7cf722-gz6.wmdbase",
-      "size": 60859640,
-      "sha256": "0b17c46d3719b91815a87cfb6a7a00fc991b099e8cb669ed11a9f87589bee329",
-      "blob": "blobs/sha256/0b17c46d3719b91815a87cfb6a7a00fc991b099e8cb669ed11a9f87589bee329.wmdbase"
+      "path": "images/alpine/alpine-3db093495e5b-4f7cf722-gz6.wmdbase",
+      "size": 61534026,
+      "sha256": "54eab7c6c882665da4254ad7e7468512d1d5f90f69eef227a8f884108598fac3",
+      "blob": "blobs/sha256/54eab7c6c882665da4254ad7e7468512d1d5f90f69eef227a8f884108598fac3.wmdbase"
     },
     {
       "path": "images/alpine/base.json",
       "size": 1659,
-      "sha256": "dcce52dfe6ae8377007108a22563192666bd0e91e0d160f575f5bb97bac11e51",
-      "blob": "blobs/sha256/dcce52dfe6ae8377007108a22563192666bd0e91e0d160f575f5bb97bac11e51.json"
+      "sha256": "a3f039b1cce89bbcf8e009e4686e8fae5774bf9184970598e2c85229764da519",
+      "blob": "blobs/sha256/a3f039b1cce89bbcf8e009e4686e8fae5774bf9184970598e2c85229764da519.json"
     },
     {
       "path": "images/alpine/image.json",
@@ -46,8 +46,8 @@
     {
       "path": "images/python/base.json",
       "size": 1909,
-      "sha256": "263acb09d122c25f9aaa1f217554bcd723d61b4622890aab85535bbd2b9360d9",
-      "blob": "blobs/sha256/263acb09d122c25f9aaa1f217554bcd723d61b4622890aab85535bbd2b9360d9.json"
+      "sha256": "0bd88254e8910862adb78d85981802f69ecd6a1446452add64f4a9a516438041",
+      "blob": "blobs/sha256/0bd88254e8910862adb78d85981802f69ecd6a1446452add64f4a9a516438041.json"
     },
     {
       "path": "images/python/image.json",
@@ -80,10 +80,10 @@
       "blob": "blobs/sha256/98bb1e8c0005c66ddc46db5bbd2098532b854d92d5d58c8149421c081d151873.pack"
     },
     {
-      "path": "images/python/python-989dffdacc69-4f7cf722-gz6.wmdbase",
-      "size": 61794910,
-      "sha256": "e1289676c65d1b0a58aa1d0661f68fa46888efb5b247da844cc49749b01f561d",
-      "blob": "blobs/sha256/e1289676c65d1b0a58aa1d0661f68fa46888efb5b247da844cc49749b01f561d.wmdbase"
+      "path": "images/python/python-20b1e7a2e0e5-4f7cf722-gz6.wmdbase",
+      "size": 62633199,
+      "sha256": "413226046131434f282e50d190720e06ae321b3ba19912d5138c96aaf42c713c",
+      "blob": "blobs/sha256/413226046131434f282e50d190720e06ae321b3ba19912d5138c96aaf42c713c.wmdbase"
     },
     {
       "path": "vm.wasm",
@@ -93,9 +93,9 @@
     },
     {
       "path": "wmn-agent/wmn-agent-linux-arm64",
-      "size": 4849824,
-      "sha256": "b7911adcb9142bb90ea1f42f6d745d9861df8edd6cb18c168d3fcddc09cdf7ad",
-      "blob": "blobs/sha256/b7911adcb9142bb90ea1f42f6d745d9861df8edd6cb18c168d3fcddc09cdf7ad"
+      "size": 5374112,
+      "sha256": "180b3dffba20103933f4684dc8f9bddd8ea1c11dff0b1fdde70b8d931055d67b",
+      "blob": "blobs/sha256/180b3dffba20103933f4684dc8f9bddd8ea1c11dff0b1fdde70b8d931055d67b"
     }
   ]
 }
