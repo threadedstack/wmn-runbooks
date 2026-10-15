@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;self&#39;; img-src &#39;self&#39; data:; font-src &#39;self&#39;; base-uri &#39;none&#39;; form-action &#39;self&#39;">
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="wmn publish">
+<title>wmn-runbooks | wmn runbooks</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/wmn-runbooks/assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><input type="checkbox" id="nav-toggle" class="toggle"><label for="nav-toggle" class="menu-btn"><span class="wmn-icon i-menu_book" aria-hidden="true"></span><span class="sr">Menu</span></label><a class="site-title" href="/wmn-runbooks/index.html"><span class="brand-name">wmn runbooks</span><span class="brand-dot" aria-hidden="true"></span></a><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb"><span class="crumb-file">README.md</span></span><span class="head-end"><form class="site-search" role="search" action="/wmn-runbooks/search.html" method="get"><label for="site-q">Search this site</label><input id="site-q" type="search" name="q" autocomplete="off" enterkeyhint="search" placeholder="Search"><button type="submit">Search</button></form></span></header>
+<div class="layout">
+<div class="rail">
+<aside class="outline" aria-label="On this page" data-pagefind-ignore><input type="checkbox" id="outline-toggle" class="toggle"><label for="outline-toggle" class="outline-btn">On this page</label><div class="outline-body"><h2>On this page</h2><ul><li><a class="l2" href="#contents">Contents</a></li><li><a class="l2" href="#build-the-site">Build the site</a></li></ul></div></aside><nav class="site-nav" aria-label="Site" data-pagefind-ignore><p class="rail-label">Pages</p><ul><li><a href="/wmn-runbooks/index.html">wmn runbooks</a></li></ul><ul><li><a href="/wmn-runbooks/README.html" aria-current="page">wmn-runbooks</a></li><li><a href="/wmn-runbooks/getting-started.html">Getting started</a></li><li><details open><summary>reference</summary><ul><li><a href="/wmn-runbooks/reference/blocks.html">Blocks</a></li><li><a href="/wmn-runbooks/reference/format.html">The document format</a></li></ul></details></li><li><details open><summary>runbooks</summary><ul><li><a href="/wmn-runbooks/runbooks/files-and-permissions.html">Files and permissions</a></li><li><a href="/wmn-runbooks/runbooks/inspect-a-machine.html">Inspect a machine</a></li><li><a href="/wmn-runbooks/runbooks/python-data.html">Python data</a></li><li><a href="/wmn-runbooks/runbooks/text-processing.html">Text processing</a></li></ul></details></li></ul></nav>
+</div>
+<main id="main"><article data-pagefind-body>
+<h1 id="wmn-runbooks">wmn-runbooks<a class="anchor" href="#wmn-runbooks" aria-label="Link to this section">#</a></h1>
+<p>Runnable operations runbooks written as wmn documents (<code>.wmn.md</code>). Shell and Python blocks run in the reader&#39;s browser, in a Linux machine compiled to WebAssembly. Nothing is sent to a server.</p>
+<p>Source: <a class="external" href="https://github.com/threadedstack/wmn-runbooks" rel="noopener noreferrer">https://github.com/threadedstack/wmn-runbooks</a>
+Site: <a class="external" href="https://threadedstack.github.io/wmn-runbooks/" rel="noopener noreferrer">https://threadedstack.github.io/wmn-runbooks/</a></p>
+<h2 id="contents">Contents<a class="anchor" href="#contents" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><code>index.wmn.md</code>: the home page and how to use the site</li>
+<li><code>getting-started.wmn.md</code>: a shell block and two Python blocks that share a variable</li>
+<li><code>runbooks/</code>: inspect a machine, files and permissions, text processing, Python data (with a live chart)</li>
+<li><code>reference/</code>: the document format and the block guide</li>
+<li><code>*.wmn-outputs/</code>: saved outputs shown on a page before anyone presses Run</li>
+</ul>
+<h2 id="build-the-site">Build the site<a class="anchor" href="#build-the-site" aria-label="Link to this section">#</a></h2>
+<p>With the <code>wmn</code> command and an engine folder (the machine images and the WebAssembly engine):</p>
+<section class="block"><div class="block-head"><span class="block-lang">text</span></div><pre class="code"><code>wmn publish . --out ../site --runnable --snapshot --engine ENGINE_DIR \
+  --host github-pages --base /wmn-runbooks/ --search
+wmn publish --check ../site --host github-pages --base /wmn-runbooks/</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<p>For Netlify use <code>--host netlify --base /</code>. The built site is not committed to this repository.</p>
+<nav class="pager" aria-label="Pages" data-pagefind-ignore><a class="prev" rel="prev" href="/wmn-runbooks/index.html"><span class="dir">Previous</span>wmn runbooks</a><a class="next" rel="next" href="/wmn-runbooks/getting-started.html"><span class="dir">Next</span>Getting started</a></nav>
+</article></main>
+</div>
+<footer class="site-footer"><span class="sf-brand"><span class="brand-dot" aria-hidden="true"></span>Published with wmn</span><span class="sf-info">1 code block</span></footer>
+</body>
+</html>

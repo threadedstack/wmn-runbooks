@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;self&#39;; img-src &#39;self&#39; data:; font-src &#39;self&#39;; base-uri &#39;none&#39;; form-action &#39;self&#39;">
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="wmn publish">
+<title>The document format | wmn runbooks</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/wmn-runbooks/assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><input type="checkbox" id="nav-toggle" class="toggle"><label for="nav-toggle" class="menu-btn"><span class="wmn-icon i-menu_book" aria-hidden="true"></span><span class="sr">Menu</span></label><a class="site-title" href="/wmn-runbooks/index.html"><span class="brand-name">wmn runbooks</span><span class="brand-dot" aria-hidden="true"></span></a><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb"><span class="crumb-dir">reference</span><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb-file">format.wmn.md</span></span><span class="head-end"><form class="site-search" role="search" action="/wmn-runbooks/search.html" method="get"><label for="site-q">Search this site</label><input id="site-q" type="search" name="q" autocomplete="off" enterkeyhint="search" placeholder="Search"><button type="submit">Search</button></form></span></header>
+<div class="layout">
+<div class="rail">
+<aside class="outline" aria-label="On this page" data-pagefind-ignore><input type="checkbox" id="outline-toggle" class="toggle"><label for="outline-toggle" class="outline-btn">On this page</label><div class="outline-body"><h2>On this page</h2><ul><li><a class="l2" href="#file-names">File names</a></li><li><a class="l2" href="#front-matter">Front matter</a></li><li><a class="l2" href="#code-blocks">Code blocks</a></li><li><a class="l2" href="#blocks-that-are-not-code">Blocks that are not code</a></li><li><a class="l2" href="#scrubbers">Scrubbers</a></li><li><a class="l2" href="#saved-outputs">Saved outputs</a></li><li><a class="l2" href="#margin-notes">Margin notes</a></li><li><a class="l2" href="#publishing">Publishing</a></li></ul></div></aside><nav class="site-nav" aria-label="Site" data-pagefind-ignore><p class="rail-label">Pages</p><ul><li><a href="/wmn-runbooks/index.html">wmn runbooks</a></li></ul><ul><li><a href="/wmn-runbooks/README.html">wmn-runbooks</a></li><li><a href="/wmn-runbooks/getting-started.html">Getting started</a></li><li><details open><summary>reference</summary><ul><li><a href="/wmn-runbooks/reference/blocks.html">Blocks</a></li><li><a href="/wmn-runbooks/reference/format.html" aria-current="page">The document format</a></li></ul></details></li><li><details open><summary>runbooks</summary><ul><li><a href="/wmn-runbooks/runbooks/files-and-permissions.html">Files and permissions</a></li><li><a href="/wmn-runbooks/runbooks/inspect-a-machine.html">Inspect a machine</a></li><li><a href="/wmn-runbooks/runbooks/python-data.html">Python data</a></li><li><a href="/wmn-runbooks/runbooks/text-processing.html">Text processing</a></li></ul></details></li></ul></nav>
+</div>
+<main id="main"><article data-pagefind-body>
+<h1 id="the-document-format">The document format<a class="anchor" href="#the-document-format" aria-label="Link to this section">#</a></h1>
+<p>A wmn document is a Markdown file. It renders in any Markdown viewer, diffs cleanly in git, and carries just enough extra to say where its code runs. This page describes the parts.</p>
+<h2 id="file-names">File names<a class="anchor" href="#file-names" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><code>name.wmn.md</code> is the usual name. To your system and to GitHub it is a Markdown file.</li>
+<li><code>name.wmn</code> is an alias with exactly the same bytes, for systems that open files by their last extension.</li>
+</ul>
+<p>wmn reads both the same way and saves a document under the name it has. The published pages on this site come from <code>.wmn.md</code> files.</p>
+<h2 id="front-matter">Front matter<a class="anchor" href="#front-matter" aria-label="Link to this section">#</a></h2>
+<p>An optional block of YAML at the very start of the file, between two <code>---</code> lines. It names the document and the machine its blocks run in.</p>
+<section class="block"><div class="block-head"><span class="block-lang">markdown</span></div><pre class="code"><code class="language-markdown">---
+title: Getting started
+image: python:3.12-slim
+---</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th>Key</th><th>Meaning</th></tr></thead><tbody><tr><td><code>title</code></td><td>The page title.</td></tr><tr><td><code>image</code></td><td>The machine image every block runs in, for example <code>python:3.12-slim</code> or <code>alpine:3.20</code>. Quote a value that looks like a number (<code>&quot;3.12&quot;</code>).</td></tr><tr><td><code>cpus</code></td><td>The number of virtual CPUs for a machine in the browser, from 1 to 16 (a site&#39;s engine may offer fewer).</td></tr><tr><td><code>memory</code></td><td>The machine&#39;s memory, in MiB or as a size such as <code>&quot;1g&quot;</code>. A machine in the browser has at most 1536 MiB.</td></tr><tr><td><code>network</code></td><td><code>true</code> or <code>false</code>. A machine on a published site has no network, whatever this says.</td></tr><tr><td><code>blocks</code></td><td>Block packages used by <code>wmn:use</code> blocks, pinned by version and hash (see <a href="/wmn-runbooks/reference/blocks.html">Blocks</a>).</td></tr></tbody></table></div>
+<p>Give one environment key per document (<code>image</code> is the one used on this site). Keys wmn does not know are kept as written. The front matter may not contain a line that is only <code>---</code> or <code>...</code>.</p>
+<h2 id="code-blocks">Code blocks<a class="anchor" href="#code-blocks" aria-label="Link to this section">#</a></h2>
+<p>A runnable block is an ordinary fenced code block. The first word of the info string is the language; an optional attribute group in braces follows it.</p>
+<section class="block"><div class="block-head"><span class="block-lang">markdown</span></div><pre class="code"><code class="language-markdown">```python {#load uses=setup timeout=30s}
+print(&quot;hello&quot;)
+```</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th>Attribute</th><th>Meaning</th></tr></thead><tbody><tr><td><code>#name</code></td><td>The block&#39;s id. Saved outputs, <code>uses=</code> and the links on a page refer to blocks by id. Ids are made for you when missing.</td></tr><tr><td><code>uses=a,b</code></td><td>Ids of blocks (or names of scrubbers and inputs) this block depends on. When one of them runs again, this block is marked out of date, and on a runnable page a scrubber re-runs the blocks that use it.</td></tr><tr><td><code>provides=</code></td><td>Names this block provides to others.</td></tr><tr><td><code>session=</code></td><td>The session name. Blocks of the same language and session name share state, such as Python variables.</td></tr><tr><td><code>timeout=</code></td><td>A run time limit: a number and <code>s</code>, <code>m</code> or <code>h</code> (<code>30s</code>, <code>10m</code>).</td></tr><tr><td><code>hidden</code></td><td>Hide the code and show only the output, with a &quot;Show code&quot; button.</td></tr><tr><td><code>collapsed</code></td><td>Fold the whole block until the reader opens it.</td></tr><tr><td><code>run=manual</code> / <code>run=auto</code></td><td>The run policy.</td></tr></tbody></table></div>
+<p>Other attributes are kept exactly as written. Class names (<code>.name</code>) and <code>key=&quot;quoted value&quot;</code> forms follow the same grammar. Everything about a fence that you did not change is saved byte for byte.</p>
+<h2 id="blocks-that-are-not-code">Blocks that are not code<a class="anchor" href="#blocks-that-are-not-code" aria-label="Link to this section">#</a></h2>
+<p>Fences whose language starts with <code>wmn:</code> are rich blocks: inputs, charts, callouts, tabs, embeds and library blocks. They are plain text in the file (a code block in any other Markdown viewer). <a href="/wmn-runbooks/reference/blocks.html">Blocks</a> lists them.</p>
+<h2 id="scrubbers">Scrubbers<a class="anchor" href="#scrubbers" aria-label="Link to this section">#</a></h2>
+<p>A number in a sentence that a reader can drag or step with the arrow keys is a code span:</p>
+<section class="block"><div class="block-head"><span class="block-lang">markdown</span></div><pre class="code"><code class="language-markdown">The budget is `wmn:M=32 min=4 max=128 step=2 unit=links` per node.</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<p><code>M</code> is a variable name. A block that reads it says <code>uses=M</code>, and the reader&#39;s change runs that block again. Keys: <code>min</code>, <code>max</code>, <code>step</code>, <code>unit</code>, <code>label</code>, and <code>options</code> (a comma-separated list the token steps through).</p>
+<h2 id="saved-outputs">Saved outputs<a class="anchor" href="#saved-outputs" aria-label="Link to this section">#</a></h2>
+<p>A document never holds its outputs. They are kept in a folder beside it, <code>name.wmn-outputs/</code>, keyed by block id and a hash of the block&#39;s code. A published site shows the saved output of each block as text or an image, and marks an output as out of date when the code has changed since it ran. When a reader presses Run in the browser, the live output replaces the saved one on the page; it is never written back to the site.</p>
+<p>The folder holds an <code>index.json</code> and a <code>blobs/</code> folder of larger outputs named by their SHA-256. Commit it with the document if you want a page to show results before anyone runs it.</p>
+<h2 id="margin-notes">Margin notes<a class="anchor" href="#margin-notes" aria-label="Link to this section">#</a></h2>
+<p>A blockquote placed right after a block, whose first line is the HTML comment <code>&lt;!--wmn:margin--&gt;</code>, is a note that belongs to that block. Other Markdown viewers draw it as an ordinary quote under the block.</p>
+<section class="block"><div class="block-head"><span class="block-lang">markdown</span></div><pre class="code"><code class="language-markdown">The index builds in one pass.
+
+&gt; &lt;!--wmn:margin--&gt;
+&gt; **Why 16**
+&gt;
+&gt; Smaller values lose recall.</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<h2 id="publishing">Publishing<a class="anchor" href="#publishing" aria-label="Link to this section">#</a></h2>
+<p><code>wmn publish FOLDER</code> turns a folder of documents into a static website, one page per document, with navigation, an outline and optional search. With <code>--runnable</code> and an engine folder, blocks get a Run button that starts the machine in the reader&#39;s browser; with <code>--host</code> it also writes the headers file your host reads. The result is plain files you can serve from any static host.</p>
+<nav class="pager" aria-label="Pages" data-pagefind-ignore><a class="prev" rel="prev" href="/wmn-runbooks/reference/blocks.html"><span class="dir">Previous</span>Blocks</a><a class="next" rel="next" href="/wmn-runbooks/runbooks/files-and-permissions.html"><span class="dir">Next</span>Files and permissions</a></nav>
+</article></main>
+</div>
+<footer class="site-footer"><span class="sf-brand"><span class="brand-dot" aria-hidden="true"></span>Published with wmn</span><span class="sf-info">4 code blocks</span></footer>
+</body>
+</html>

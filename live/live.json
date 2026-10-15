@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "frames": [
+    {
+      "path": "live/05abe63df4a79741c61d.html",
+      "package": {
+        "sha256": "625e7d34b5318e53aa3782ae13e456f0a62a7022b5a8f3dec121a7854ec8511a",
+        "name": "stdlib/charts",
+        "version": "1.0.0",
+        "from": "stdlib/charts"
+      },
+      "block": "histogram",
+      "view": {
+        "path": "views/histogram.js",
+        "sha256": "46fb6491bd2ab49a4622daae023069ef9af4b3396afba63b5d79afe374add554"
+      },
+      "documents": [
+        "runbooks/python-data.wmn.md"
+      ]
+    },
+    {
+      "path": "live/5b4ac1f1b51d444231b7.html",
+      "package": {
+        "sha256": "625e7d34b5318e53aa3782ae13e456f0a62a7022b5a8f3dec121a7854ec8511a",
+        "name": "stdlib/charts",
+        "version": "1.0.0",
+        "from": "stdlib/charts"
+      },
+      "block": "line-chart",
+      "view": {
+        "path": "views/series.js",
+        "sha256": "19e707bb90afe2365f7d447214814caa6cb74c95ada639dda9265f36eacf90b1"
+      },
+      "documents": [
+        "runbooks/python-data.wmn.md"
+      ]
+    }
+  ]
+}

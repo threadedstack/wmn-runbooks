@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;self&#39;; img-src &#39;self&#39; data:; font-src &#39;self&#39;; base-uri &#39;none&#39;; form-action &#39;self&#39;">
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="wmn publish">
+<title>wmn runbooks</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/wmn-runbooks/assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><input type="checkbox" id="nav-toggle" class="toggle"><label for="nav-toggle" class="menu-btn"><span class="wmn-icon i-menu_book" aria-hidden="true"></span><span class="sr">Menu</span></label><a class="site-title" href="/wmn-runbooks/index.html"><span class="brand-name">wmn runbooks</span><span class="brand-dot" aria-hidden="true"></span></a><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb"><span class="crumb-file">index.wmn.md</span></span><span class="head-end"><form class="site-search" role="search" action="/wmn-runbooks/search.html" method="get"><label for="site-q">Search this site</label><input id="site-q" type="search" name="q" autocomplete="off" enterkeyhint="search" placeholder="Search"><button type="submit">Search</button></form></span></header>
+<div class="layout">
+<div class="rail">
+<aside class="outline" aria-label="On this page" data-pagefind-ignore><input type="checkbox" id="outline-toggle" class="toggle"><label for="outline-toggle" class="outline-btn">On this page</label><div class="outline-body"><h2>On this page</h2><ul><li><a class="l2" href="#start-here">Start here</a></li><li><a class="l2" href="#runbooks">Runbooks</a></li><li><a class="l2" href="#reference">Reference</a></li><li><a class="l2" href="#how-to-use-the-site">How to use the site</a></li><li><a class="l2" href="#browser-notes">Browser notes</a></li><li><a class="l2" href="#source">Source</a></li></ul></div></aside><nav class="site-nav" aria-label="Site" data-pagefind-ignore><p class="rail-label">Pages</p><ul><li><a href="/wmn-runbooks/index.html" aria-current="page">wmn runbooks</a></li></ul><ul><li><a href="/wmn-runbooks/README.html">wmn-runbooks</a></li><li><a href="/wmn-runbooks/getting-started.html">Getting started</a></li><li><details open><summary>reference</summary><ul><li><a href="/wmn-runbooks/reference/blocks.html">Blocks</a></li><li><a href="/wmn-runbooks/reference/format.html">The document format</a></li></ul></details></li><li><details open><summary>runbooks</summary><ul><li><a href="/wmn-runbooks/runbooks/files-and-permissions.html">Files and permissions</a></li><li><a href="/wmn-runbooks/runbooks/inspect-a-machine.html">Inspect a machine</a></li><li><a href="/wmn-runbooks/runbooks/python-data.html">Python data</a></li><li><a href="/wmn-runbooks/runbooks/text-processing.html">Text processing</a></li></ul></details></li></ul></nav>
+</div>
+<main id="main"><article data-pagefind-body>
+<h1 id="wmn-runbooks">wmn runbooks<a class="anchor" href="#wmn-runbooks" aria-label="Link to this section">#</a></h1>
+<p>A small site of runnable documentation. Every shell and Python block on these pages has a <strong>Run</strong> button. Press it and the block runs <strong>in your own browser</strong>, inside a small Linux machine that was compiled to WebAssembly. Nothing you run is sent to a server, and the machine has no network.</p>
+<p>The pages are wmn documents (<code>.wmn.md</code>): ordinary Markdown with a few extra attributes on code fences, so the same files also read fine in any Markdown viewer.</p>
+<h2 id="start-here">Start here<a class="anchor" href="#start-here" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><a href="/wmn-runbooks/getting-started.html">Getting started</a>: run a shell block and two Python blocks that share a variable.</li>
+</ul>
+<h2 id="runbooks">Runbooks<a class="anchor" href="#runbooks" aria-label="Link to this section">#</a></h2>
+<p>Practical operations tasks, each one runnable inside the guest Linux.</p>
+<ul>
+<li><a href="/wmn-runbooks/runbooks/inspect-a-machine.html">Inspect a machine</a>: CPU, memory, disks, mounts and processes.</li>
+<li><a href="/wmn-runbooks/runbooks/files-and-permissions.html">Files and permissions</a>: create files, change modes, find and read them.</li>
+<li><a href="/wmn-runbooks/runbooks/text-processing.html">Text processing</a>: grep, sed and awk on a generated log.</li>
+<li><a href="/wmn-runbooks/runbooks/python-data.html">Python data</a>: make a small dataset, summarize it, and draw a live chart that follows a scrubber.</li>
+</ul>
+<h2 id="reference">Reference<a class="anchor" href="#reference" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><a href="/wmn-runbooks/reference/format.html">The document format</a></li>
+<li><a href="/wmn-runbooks/reference/blocks.html">Blocks</a></li>
+</ul>
+<h2 id="how-to-use-the-site">How to use the site<a class="anchor" href="#how-to-use-the-site" aria-label="Link to this section">#</a></h2>
+<ol>
+<li>Read a page. The code and the output saved with it are shown as they were when the page was built.</li>
+<li>Press <strong>Run</strong> on a block. The first Run on a page downloads and starts the machine, which takes a little while (the site may include a saved snapshot of the machine so that start is faster). Later Runs reuse the same machine.</li>
+<li>Blocks on one page share that machine, so files you create and Python variables you set are still there for the next block. Run blocks in order.</li>
+<li>Some pages have a draggable number (a scrubber) or a chart. Moving the number runs the blocks that use it again, and the chart redraws from the new result.</li>
+<li>Use the search box in the header to find a page.</li>
+</ol>
+<h2 id="browser-notes">Browser notes<a class="anchor" href="#browser-notes" aria-label="Link to this section">#</a></h2>
+<p>The machine needs a modern browser with WebAssembly and shared memory, and a page that is served in a way that allows it (the site handles this for you on the common hosts).</p>
+<ul>
+<li><strong>Chromium</strong> (Chrome, Edge, Brave and others) and <strong>Firefox</strong> both work.</li>
+<li><strong>WebKit</strong> (Safari) works too.</li>
+<li>Starting is a little faster in Chromium and WebKit when the site ships a snapshot; Firefox starts the machine from scratch.</li>
+<li>The machine uses a few hundred megabytes of memory while a page is open. Close the tab to stop it.</li>
+<li>With JavaScript turned off the pages still read, but blocks do not run.</li>
+<li>The machine has one virtual CPU and no network, so commands that need the internet fail by design.</li>
+</ul>
+<h2 id="source">Source<a class="anchor" href="#source" aria-label="Link to this section">#</a></h2>
+<p>The source of this site is at github.com/threadedstack/wmn-runbooks.</p>
+<nav class="pager" aria-label="Pages" data-pagefind-ignore><span class="gap"></span><a class="next" rel="next" href="/wmn-runbooks/README.html"><span class="dir">Next</span>wmn-runbooks</a></nav>
+</article></main>
+</div>
+<footer class="site-footer"><span class="sf-brand"><span class="brand-dot" aria-hidden="true"></span>Published with wmn</span></footer>
+</body>
+</html>

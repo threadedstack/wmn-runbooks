@@ -1,0 +1,101 @@
+{
+  "schema": 2,
+  "wmdWeb": {
+    "repo": "https://github.com/threadedstack/wmd.git",
+    "commit": "26da6428b7a011de5294d2c32d695eec8c7c9763",
+    "date": "2026-10-13T23:57:31-07:00"
+  },
+  "snapshot": true,
+  "files": [
+    {
+      "path": "guest/arm64/Image",
+      "size": 39047176,
+      "sha256": "ecd94b5ea5e4deb8369fa9d55beb7a0b9ee0dfcca7b6d75e33a85ab484d55c4d",
+      "blob": "blobs/sha256/ecd94b5ea5e4deb8369fa9d55beb7a0b9ee0dfcca7b6d75e33a85ab484d55c4d"
+    },
+    {
+      "path": "guest/arm64/initramfs.cpio.gz",
+      "size": 4659746,
+      "sha256": "c036dd01b5d68479cd1f67b103941508d3817ea1addafc8586c2bd97f25d589d",
+      "blob": "blobs/sha256/c036dd01b5d68479cd1f67b103941508d3817ea1addafc8586c2bd97f25d589d.gz"
+    },
+    {
+      "path": "images/alpine/alpine-5f84f33b05a7-4f7cf722-gz6.wmdbase",
+      "size": 60859640,
+      "sha256": "0b17c46d3719b91815a87cfb6a7a00fc991b099e8cb669ed11a9f87589bee329",
+      "blob": "blobs/sha256/0b17c46d3719b91815a87cfb6a7a00fc991b099e8cb669ed11a9f87589bee329.wmdbase"
+    },
+    {
+      "path": "images/alpine/base.json",
+      "size": 1659,
+      "sha256": "dcce52dfe6ae8377007108a22563192666bd0e91e0d160f575f5bb97bac11e51",
+      "blob": "blobs/sha256/dcce52dfe6ae8377007108a22563192666bd0e91e0d160f575f5bb97bac11e51.json"
+    },
+    {
+      "path": "images/alpine/image.json",
+      "size": 362,
+      "sha256": "e37344380613fced5d9f0a46b2c86257108e485882870f7e2eb16cffe4a8483b",
+      "blob": "blobs/sha256/e37344380613fced5d9f0a46b2c86257108e485882870f7e2eb16cffe4a8483b.json"
+    },
+    {
+      "path": "images/alpine/layer-0.pack",
+      "size": 8852999,
+      "sha256": "8fa5de60bc39c0f1cb0cc108e50962134925f74c8643463e467572eac3038854",
+      "blob": "blobs/sha256/8fa5de60bc39c0f1cb0cc108e50962134925f74c8643463e467572eac3038854.pack"
+    },
+    {
+      "path": "images/python/base.json",
+      "size": 1909,
+      "sha256": "263acb09d122c25f9aaa1f217554bcd723d61b4622890aab85535bbd2b9360d9",
+      "blob": "blobs/sha256/263acb09d122c25f9aaa1f217554bcd723d61b4622890aab85535bbd2b9360d9.json"
+    },
+    {
+      "path": "images/python/image.json",
+      "size": 619,
+      "sha256": "8d6944533afb37961ca1d11b4c53506615fe9e1aeef7a19ee58999e8f246fc36",
+      "blob": "blobs/sha256/8d6944533afb37961ca1d11b4c53506615fe9e1aeef7a19ee58999e8f246fc36.json"
+    },
+    {
+      "path": "images/python/layer-0.pack",
+      "size": 100903939,
+      "sha256": "742f9faccb8cb681ee2a5bd58a2c030f1154f4fc2d3c9c8a4fb26dd4dd66084e",
+      "blob": "blobs/sha256/742f9faccb8cb681ee2a5bd58a2c030f1154f4fc2d3c9c8a4fb26dd4dd66084e.pack"
+    },
+    {
+      "path": "images/python/layer-1.pack",
+      "size": 3902845,
+      "sha256": "237b22f5b5540dde195031d3ab964db2044aa66a09dcbb96639f3bdc55a1c89b",
+      "blob": "blobs/sha256/237b22f5b5540dde195031d3ab964db2044aa66a09dcbb96639f3bdc55a1c89b.pack"
+    },
+    {
+      "path": "images/python/layer-2.pack",
+      "size": 40226492,
+      "sha256": "2f89829108ccc32e7402bca72a7e002980f8eccbca6a5897f91a5ed7805a2c84",
+      "blob": "blobs/sha256/2f89829108ccc32e7402bca72a7e002980f8eccbca6a5897f91a5ed7805a2c84.pack"
+    },
+    {
+      "path": "images/python/layer-3.pack",
+      "size": 531,
+      "sha256": "98bb1e8c0005c66ddc46db5bbd2098532b854d92d5d58c8149421c081d151873",
+      "blob": "blobs/sha256/98bb1e8c0005c66ddc46db5bbd2098532b854d92d5d58c8149421c081d151873.pack"
+    },
+    {
+      "path": "images/python/python-989dffdacc69-4f7cf722-gz6.wmdbase",
+      "size": 61794910,
+      "sha256": "e1289676c65d1b0a58aa1d0661f68fa46888efb5b247da844cc49749b01f561d",
+      "blob": "blobs/sha256/e1289676c65d1b0a58aa1d0661f68fa46888efb5b247da844cc49749b01f561d.wmdbase"
+    },
+    {
+      "path": "vm.wasm",
+      "size": 1462917,
+      "sha256": "4f7cf72269e2deaab6c987b8c2d25b5f7f31b6a9b8f45af34474175a470954f4",
+      "blob": "blobs/sha256/4f7cf72269e2deaab6c987b8c2d25b5f7f31b6a9b8f45af34474175a470954f4.wasm"
+    },
+    {
+      "path": "wmn-agent/wmn-agent-linux-arm64",
+      "size": 4849824,
+      "sha256": "b7911adcb9142bb90ea1f42f6d745d9861df8edd6cb18c168d3fcddc09cdf7ad",
+      "blob": "blobs/sha256/b7911adcb9142bb90ea1f42f6d745d9861df8edd6cb18c168d3fcddc09cdf7ad"
+    }
+  ]
+}

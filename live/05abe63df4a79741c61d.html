@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; script-src &#39;sha256-inR44aiyaONPZrthXFqZBpRMNet3/z/ayj10gxGZUMo=&#39; &#39;sha256-ypV9phwNDpIXBkVUg4cWYqnvFBiojl5W2AijtLrVqjQ=&#39; &#39;sha256-lJtkH4vyH3qzttUXTHQuH6bjE/XBzeDYoUCNlnLRxRE=&#39; blob:; style-src &#39;unsafe-inline&#39;; img-src data: blob:; font-src data:; media-src data: blob:; connect-src &#39;none&#39;; worker-src &#39;none&#39;; child-src &#39;none&#39;; frame-src &#39;none&#39;; object-src &#39;none&#39;; manifest-src &#39;none&#39;; form-action &#39;none&#39;; base-uri &#39;none&#39;">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Histogram and CDF</title>
+<style>html{color-scheme:light dark}
+html,body{margin:0}
+body{padding:0.5rem;font-family:var(--wmn-font-text,system-ui,sans-serif);color:CanvasText;background:transparent}
+html[data-wmn-theme] body{color:var(--wmn-color-on-surface)}
+#wmn-live-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.wmn-live-error{margin:0;padding:0.5rem;border:1px solid currentColor;border-radius:0.5rem}
+.wmn-live-fallback{margin:0;font-size:0.9rem}
+.wmn-live-fallback img{display:block;max-width:100%;height:auto;margin:0 0 0.5rem}
+.wmn-live-fallback p{margin:0 0 0.25rem}
+</style>
+</head>
+<body>
+<script type="application/json" id="wmn-live-data">{"block":{"id":"histogram","title":"Histogram and CDF","params":{"column":{"type":"text","maxLength":64,"label":"Column"},"bins":{"type":"number","min":1,"max":100,"step":1,"value":12,"label":"Bins"},"mode":{"type":"select","options":["both","histogram","cdf"],"value":"both","label":"Show"},"title":{"type":"text","maxLength":80,"label":"Title"}},"package":"stdlib/charts@1.0.0"},"title":"Histogram and CDF","code":"// stdlib/charts: histogram and CDF of one numeric column (ROADMAP 6.34, D-214; the \"Latency Histogram \u0026 CDF\" of the block-authoring design).\n// Sent: its declared values (column, bins, mode, title) and the tables of the blocks the author named. The bin count and the mode are\n// controls in the view; a change is written back as one body line (api.set), so it saves with the document.\nconst SVGNS = \"http://www.w3.org/2000/svg\";\nconst put = (n, a, kids) =\u003e {\n  for (const k in a || {}) {\n    const v = a[k];\n    if (v === false || v == null) continue;\n    n.setAttribute(k, v === true ? \"\" : String(v));\n  }\n  for (const c of kids) if (c != null) n.append(c);\n  return n;\n};\nconst h = (t, a, ...k) =\u003e put(document.createElement(t), a, k);\nconst sv = (t, a, ...k) =\u003e put(document.createElementNS(SVGNS, t), a, k);\nconst tok = (n, fb) =\u003e `var(--wmn-color-${n}, ${fb})`;\nconst num = (v) =\u003e (typeof v === \"number\" ? v : typeof v === \"string\" \u0026\u0026 v.trim() !== \"\" ? Number(v) : Number.NaN);\nconst fmt = (v) =\u003e {\n  if (typeof v !== \"number\" || !Number.isFinite(v)) return String(v ?? \"\");\n  const a = Math.abs(v);\n  if (a !== 0 \u0026\u0026 (a \u003e= 1e6 || a \u003c 1e-3)) return v.toExponential(2).replace(/\\.?0+e/, \"e\");\n  return String(+v.toPrecision(4));\n};\nconst MAX_ROWS = 5000;\nfunction readTable(api) {\n  for (const name of api.dataNames()) {\n    const d = api.data(name);\n    const t = d?.value;\n    if (!t || !Array.isArray(t.columns) || !Array.isArray(t.rows)) continue;\n    const cols = t.columns.map((c) =\u003e (typeof c === \"string\" ? c : c \u0026\u0026 typeof c.name === \"string\" ? c.name : \"\"));\n    const rows = t.rows.slice(0, MAX_ROWS).map((r) =\u003e (Array.isArray(r) ? r : cols.map((c) =\u003e (r ? r[c] : null))));\n    return { name, cols, rows, total: t.rows.length };\n  }\n  return null;\n}\nconst isNumeric = (t, i) =\u003e {\n  let seen = 0;\n  for (const r of t.rows) {\n    if (r[i] === null || r[i] === undefined || r[i] === \"\") continue;\n    if (!Number.isFinite(num(r[i]))) return false;\n    seen++;\n  }\n  return seen \u003e 0;\n};\nfunction niceTicks(lo, hi, n) {\n  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return [0, 1];\n  // a span too big for a float is worked out in halves\n  if (!Number.isFinite(hi - lo)) return niceTicks(lo / 2, hi / 2, n).map((v) =\u003e v * 2);\n  if (!(hi \u003e lo)) {\n    lo -= 1;\n    hi += 1;\n  }\n  const raw = (hi - lo) / Math.max(1, n);\n  // values so large that one unit is below their spacing have no ticks between them\n  if (!(raw \u003e 0)) return [lo, hi];\n  const mag = 10 ** Math.floor(Math.log10(raw));\n  const r = raw / mag;\n  const step = (r \u003c 1.5 ? 1 : r \u003c 3 ? 2 : r \u003c 7 ? 5 : 10) * mag;\n  const out = [];\n  const top = Math.ceil(hi / step) * step + step / 2;\n  // ends when the step no longer moves the value (below float spacing), and never makes more than 60 ticks\n  for (let v = Math.floor(lo / step) * step; v \u003c= top \u0026\u0026 out.length \u003c 60; ) {\n    out.push(+v.toFixed(12));\n    const next = v + step;\n    if (next === v) break;\n    v = next;\n  }\n  return out.length \u003e= 2 ? out : [lo, hi];\n}\n// where v lies between a and b (0 to 1), without overflowing when b - a is beyond a float\nconst frac = (v, a, b) =\u003e (v / 2 - a / 2) / (b / 2 - a / 2 || 1);\n\nconst STYLE = `\n.sl{font:14px/1.4 var(--wmn-font-text,system-ui,sans-serif);color:var(--wmn-color-on-surface,#1c1b1a);padding:8px 4px}\n.sl-title{font:500 16px/1.3 var(--wmn-font-display,serif);margin:0 0 4px;color:var(--wmn-color-chart-title,#1c1b1a)}\n.sl-note{color:var(--wmn-color-on-surface-variant,#57423c);margin:4px 0;font-size:13px}\n.sl-cursor{display:block;border-radius:4px;touch-action:pan-y}\n.sl-cursor:focus-visible,.sl button:focus-visible,.sl input:focus-visible,.sl select:focus-visible{outline:2px solid var(--wmn-color-primary,#a03a19);outline-offset:2px}\n.sl-read{min-height:20px;margin:4px 0;font-size:13px;font-variant-numeric:tabular-nums}\n.sl-controls{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:6px 0;font-size:13px}\n.sl-controls label{display:inline-flex;gap:8px;align-items:center}\n.sl-controls input[type=range]{width:150px;accent-color:var(--wmn-color-primary,#a03a19)}\n.sl select{font:inherit;font-size:13px;min-height:28px;border-radius:var(--wmn-radius,4px);border:1px solid var(--wmn-color-outline,#8b716a);background:var(--wmn-color-surface-container,#f2edeb);color:var(--wmn-color-on-surface,#1c1b1a)}\n.sl-stats{display:flex;flex-wrap:wrap;gap:4px 18px;margin:4px 0;padding:0;list-style:none;font-size:13px;font-variant-numeric:tabular-nums}\n.sl-stats b{font-weight:500;color:var(--wmn-color-on-surface-variant,#57423c);margin-right:4px}\n`;\n\nconst quantile = (sorted, q) =\u003e {\n  if (sorted.length === 0) return Number.NaN;\n  const at = (sorted.length - 1) * q;\n  const lo = Math.floor(at);\n  const hi = Math.ceil(at);\n  return sorted[lo] + (sorted[hi] - sorted[lo]) * (at - lo);\n};\n\nexport default function view(api) {\n  document.head.append(h(\"style\", {}, STYLE));\n  const root = api.root;\n  const box = h(\"div\", { class: \"sl\" });\n  const plot = h(\"div\", {});\n  const range = h(\"input\", {\n    type: \"range\",\n    min: 1,\n    max: 100,\n    step: 1,\n    value: 12,\n    \"data-k\": \"bins\",\n    \"aria-label\": \"Bins\",\n  });\n  const shown = h(\"output\", {}, \"12\");\n  const pick = h(\n    \"select\",\n    { \"data-k\": \"mode\", \"aria-label\": \"Show\" },\n    ...[\n      [\"both\", \"Histogram and CDF\"],\n      [\"histogram\", \"Histogram\"],\n      [\"cdf\", \"CDF\"],\n    ].map(([v, l]) =\u003e h(\"option\", { value: v }, l)),\n  );\n  const controls = h(\n    \"div\",\n    { class: \"sl-controls\" },\n    h(\"label\", {}, \"Bins\", range, shown),\n    h(\"label\", {}, \"Show\", pick),\n  );\n  controls.hidden = true;\n  box.append(controls, plot);\n  root.append(box);\n  let values = api.values();\n  let width = 0;\n  let cursor = 0;\n  let timer = 0;\n  let sendTimer = 0;\n\n  const send = (key, value) =\u003e {\n    clearTimeout(sendTimer);\n    sendTimer = setTimeout(() =\u003e api.set(key, value), 80);\n  };\n\n  function bin(sorted, count) {\n    const lo = sorted[0];\n    const hi = sorted[sorted.length - 1];\n    // (mixed, not lo + span * k: the span of -1e308 to 1e308 is beyond a float)\n    const at = (k) =\u003e lo * (1 - k) + hi * k;\n    const bins = Array.from({ length: count }, (_, i) =\u003e ({ a: at(i / count), b: at((i + 1) / count), n: 0 }));\n    for (const v of sorted) bins[Math.max(0, Math.min(count - 1, Math.floor(frac(v, lo, hi) * count)))].n++;\n    let run = 0;\n    for (const b of bins) {\n      run += b.n;\n      b.cum = run / sorted.length;\n    }\n    return bins;\n  }\n\n  range.addEventListener(\"input\", () =\u003e {\n    const n = Number(range.value);\n    values = { ...values, bins: n };\n    shown.textContent = String(n);\n    send(\"bins\", n);\n    redraw();\n  });\n  pick.addEventListener(\"change\", () =\u003e {\n    values = { ...values, mode: pick.value };\n    send(\"mode\", pick.value);\n    redraw();\n  });\n\n  function draw() {\n    const hadFocus = plot.contains(document.activeElement);\n    plot.replaceChildren();\n    controls.hidden = true;\n    if (values.title) plot.append(h(\"p\", { class: \"sl-title\" }, String(values.title)));\n    const t = readTable(api);\n    if (!t) {\n      plot.append(\n        h(\n          \"p\",\n          { class: \"sl-note\" },\n          \"No table yet. Add source: and the id of a block that prints a table, then run that block.\",\n        ),\n      );\n      api.status(JSON.stringify({ state: \"empty\" }));\n      return;\n    }\n    const ci = t.cols.includes(values.column)\n      ? t.cols.indexOf(values.column)\n      : t.cols.findIndex((_, i) =\u003e isNumeric(t, i));\n    if (ci \u003c 0) {\n      plot.append(h(\"p\", { class: \"sl-note\", role: \"status\" }, \"The table has no numeric column to count.\"));\n      api.status(JSON.stringify({ state: \"problem\" }));\n      return;\n    }\n    const col = t.cols[ci];\n    const data = t.rows\n      .map((r) =\u003e num(r[ci]))\n      .filter(Number.isFinite)\n      .sort((a, b) =\u003e a - b);\n    if (data.length === 0) {\n      plot.append(h(\"p\", { class: \"sl-note\", role: \"status\" }, `Column ${col} has no numbers.`));\n      return;\n    }\n    const mode = [\"histogram\", \"cdf\", \"both\"].includes(values.mode) ? values.mode : \"both\";\n    const count = Math.max(1, Math.min(100, Math.round(Number(values.bins) || 12)));\n    const bins = bin(data, count);\n    cursor = Math.min(cursor, count - 1);\n    const mean = data.reduce((s, v) =\u003e s + v, 0) / data.length;\n    plot.append(\n      h(\n        \"ul\",\n        { class: \"sl-stats\", \"aria-label\": `Summary of ${col}` },\n        ...[\n          [\"n\", String(data.length)],\n          [\"mean\", fmt(mean)],\n          [\"median\", fmt(quantile(data, 0.5))],\n          [\"p95\", fmt(quantile(data, 0.95))],\n          [\"p99\", fmt(quantile(data, 0.99))],\n          [\"max\", fmt(data[data.length - 1])],\n        ].map(([k, v]) =\u003e h(\"li\", {}, h(\"b\", {}, k), v)),\n      ),\n    );\n    const W = Math.max(300, Math.floor(width || root.clientWidth || 600));\n    const H = 260;\n    const m = { l: 52, r: mode === \"histogram\" ? 14 : 48, t: 10, b: 42 };\n    const iw = W - m.l - m.r;\n    const ih = H - m.t - m.b;\n    const axis = tok(\"chart-axis\", \"#8b716a\");\n    const grid = tok(\"chart-grid\", \"#dec0b8\");\n    const label = tok(\"chart-label\", \"#57423c\");\n    const lo = bins[0].a;\n    const hi = bins[bins.length - 1].b;\n    const X = (v) =\u003e m.l + frac(v, lo, hi) * iw;\n    const maxN = Math.max(...bins.map((b) =\u003e b.n));\n    const nt = niceTicks(0, maxN, 5);\n    const topN = nt[nt.length - 1] || 1;\n    const Yn = (n) =\u003e m.t + ih - (n / topN) * ih;\n    const Yp = (p) =\u003e m.t + ih - p * ih;\n    const svg = sv(\"svg\", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, \"aria-hidden\": \"true\", focusable: \"false\" });\n    if (mode === \"cdf\") {\n      for (const p of [0, 0.25, 0.5, 0.75, 1]) {\n        svg.append(sv(\"line\", { x1: m.l, x2: W - m.r, y1: Yp(p), y2: Yp(p), stroke: grid }));\n        svg.append(\n          sv(\n            \"text\",\n            { x: m.l - 6, y: Yp(p) + 4, \"text-anchor\": \"end\", fill: label, \"font-size\": 12 },\n            `${Math.round(p * 100)}%`,\n          ),\n        );\n      }\n    } else {\n      for (const v of nt) {\n        svg.append(sv(\"line\", { x1: m.l, x2: W - m.r, y1: Yn(v), y2: Yn(v), stroke: v === 0 ? axis : grid }));\n        svg.append(\n          sv(\"text\", { x: m.l - 6, y: Yn(v) + 4, \"text-anchor\": \"end\", fill: label, \"font-size\": 12 }, fmt(v)),\n        );\n      }\n    }\n    if (mode === \"both\")\n      for (const p of [0, 0.5, 1])\n        svg.append(\n          sv(\"text\", { x: W - m.r + 6, y: Yp(p) + 4, fill: label, \"font-size\": 12 }, `${Math.round(p * 100)}%`),\n        );\n    for (const v of niceTicks(lo, hi, Math.max(2, Math.floor(iw / 90))).filter((v) =\u003e v \u003e= lo \u0026\u0026 v \u003c= hi))\n      svg.append(\n        sv(\"text\", { x: X(v), y: H - m.b + 18, \"text-anchor\": \"middle\", fill: label, \"font-size\": 12 }, fmt(v)),\n      );\n    svg.append(sv(\"text\", { x: m.l + iw / 2, y: H - 6, \"text-anchor\": \"middle\", fill: label, \"font-size\": 12 }, col));\n    if (mode !== \"cdf\")\n      for (const b of bins)\n        svg.append(\n          sv(\"rect\", {\n            x: X(b.a) + 0.5,\n            y: Yn(b.n),\n            width: Math.max(1, X(b.b) - X(b.a) - 1),\n            height: Yn(0) - Yn(b.n),\n            fill: tok(\"chart-1\", \"#a03a19\"),\n            \"fill-opacity\": mode === \"both\" ? 0.75 : 1,\n          }),\n        );\n    if (mode !== \"histogram\") {\n      // the empirical CDF as a step line, at most 300 steps\n      const stride = Math.max(1, Math.floor(data.length / 300));\n      let d = `M${X(data[0]).toFixed(1)} ${Yp(0).toFixed(1)}`;\n      for (let i = 0; i \u003c data.length; i += stride)\n        d += `L${X(data[i]).toFixed(1)} ${Yp(i / data.length).toFixed(1)}L${X(data[i]).toFixed(1)} ${Yp((i + 1) / data.length).toFixed(1)}`;\n      d += `L${X(data[data.length - 1]).toFixed(1)} ${Yp(1).toFixed(1)}`;\n      svg.append(sv(\"path\", { d, fill: \"none\", stroke: tok(\"chart-2\", \"#0051d5\"), \"stroke-width\": 2 }));\n    }\n    const cur = sv(\"g\", {});\n    svg.append(cur);\n    const readout = h(\"div\", { class: \"sl-read\" });\n    const textOf = (b) =\u003e\n      `${fmt(b.a)} to ${fmt(b.b)}: ${b.n} values (${Math.round((b.n / data.length) * 1000) / 10}%), ${Math.round(b.cum * 1000) / 10}% at or below ${fmt(b.b)}`;\n    const slider = h(\n      \"div\",\n      {\n        class: \"sl-cursor\",\n        role: \"slider\",\n        tabindex: 0,\n        \"aria-label\": `${values.title ? `${values.title}, ` : \"\"}Histogram of ${col}. Arrow keys move between bins`,\n        \"aria-valuemin\": 1,\n        \"aria-valuemax\": count,\n        \"aria-valuenow\": 1,\n      },\n      svg,\n    );\n    const place = () =\u003e {\n      const b = bins[cursor];\n      cur.replaceChildren(\n        sv(\"rect\", {\n          x: X(b.a),\n          y: m.t,\n          width: Math.max(1, X(b.b) - X(b.a)),\n          height: ih,\n          fill: \"none\",\n          stroke: tok(\"on-surface\", \"#1c1b1a\"),\n          \"stroke-dasharray\": \"3 3\",\n        }),\n      );\n      readout.textContent = textOf(b);\n      slider.setAttribute(\"aria-valuenow\", String(cursor + 1));\n      slider.setAttribute(\"aria-valuetext\", textOf(b));\n    };\n    slider.addEventListener(\"keydown\", (e) =\u003e {\n      const step =\n        e.key === \"ArrowRight\" || e.key === \"ArrowUp\"\n          ? 1\n          : e.key === \"ArrowLeft\" || e.key === \"ArrowDown\"\n            ? -1\n            : e.key === \"Home\"\n              ? -1e9\n              : e.key === \"End\"\n                ? 1e9\n                : 0;\n      if (!step) return;\n      e.preventDefault();\n      cursor = Math.max(0, Math.min(count - 1, cursor + step));\n      place();\n    });\n    slider.addEventListener(\"pointermove\", (e) =\u003e {\n      const r = svg.getBoundingClientRect();\n      const k = (e.clientX - r.left - m.l) / (iw || 1);\n      const v = lo * (1 - k) + hi * k;\n      const idx = Math.max(\n        0,\n        Math.min(count - 1, bins.findIndex((b) =\u003e v \u003c b.b) \u003c 0 ? count - 1 : bins.findIndex((b) =\u003e v \u003c b.b)),\n      );\n      if (idx !== cursor) {\n        cursor = idx;\n        place();\n      }\n    });\n    controls.hidden = false;\n    range.value = String(count);\n    shown.textContent = String(count);\n    pick.value = mode;\n    plot.append(slider, readout);\n    place();\n    if (hadFocus) plot.querySelector(\"[role=slider]\")?.focus();\n    api.status(JSON.stringify({ state: \"drawn\", column: col, n: data.length, bins: count, mode, width: W }));\n  }\n\n  const redraw = () =\u003e {\n    if (timer) return;\n    timer = setTimeout(() =\u003e {\n      timer = 0;\n      draw();\n    }, 16);\n  };\n  api.onValues((v) =\u003e {\n    values = v;\n    redraw();\n  });\n  api.onData(redraw);\n  if (typeof ResizeObserver !== \"undefined\")\n    new ResizeObserver(() =\u003e {\n      const w = Math.floor(root.clientWidth);\n      if (Math.abs(w - width) \u003e 1) {\n        width = w;\n        redraw();\n      }\n    }).observe(root);\n  width = Math.floor(root.clientWidth);\n  draw();\n  api.done({ lib: \"stdlib/charts\", block: \"histogram\" });\n}\n","assets":[],"params":{"column":{"type":"text","maxLength":64,"label":"Column"},"bins":{"type":"number","min":1,"max":100,"step":1,"value":12,"label":"Bins"},"mode":{"type":"select","options":["both","histogram","cdf"],"value":"both","label":"Show"},"title":{"type":"text","maxLength":80,"label":"Title"}},"values":{"column":"ms","bins":12,"mode":"both","title":"Response time"},"data":{"latencies":{"mime":"application/vnd.wmn.table+json","value":{"columns":["ms"],"rows":[[15],[18.5],[27.5],[18.7],[42.6],[28.2],[58.9],[26.5],[28.7],[42.2],[20.6],[44.5],[15.6],[11.7],[16.5],[49.8],[28.7],[24.8],[18],[52.2],[29.2],[54.9],[31],[47.8],[20.1],[22.4],[11.4],[27.2],[32.5],[20.6],[26.8],[15.8],[27.4],[42.4],[22.9],[33.3],[28],[52.8],[19.9],[17.8],[57.7],[25.6],[20.6],[27.7],[30.1],[31.1],[48.3],[16.6],[27.6],[20.7],[18.6],[18.6],[30.7],[19.9],[34.5],[15.3],[29.6],[19.5],[40.8],[35.4],[16.4],[44.8],[18.8],[25.3],[16.8],[51.2],[36.6],[15.7],[34.7],[19.6],[21.8],[7.9],[39.3],[89.1],[32.8],[18.6],[19.1],[27.3],[55.2],[16.4],[32.9],[7.3],[28.4],[22.4],[20.9],[28.9],[54.7],[14.4],[16.1],[21.6],[12],[19.5],[17.1],[27.6],[16.5],[11.9],[33.1],[15.8],[18.6],[36.3],[48.7],[22.3],[24.3],[19.6],[23.5],[27.1],[12.9],[14.5],[44.6],[16.8],[84.4],[52.2],[38.8],[10.7],[36.5],[60.9],[61.7],[39.2],[30.2],[14.1],[33.8],[18.7],[14],[35.1],[20.3],[19.7],[12],[49],[31.6],[48],[33.4],[23.6],[36.6],[51.4],[20.6],[17],[13.2],[19.9],[13.5],[14.8],[27.1],[23.8],[15.8],[12.5],[23.5],[20.8],[45.7],[23.2],[40.9],[23.7],[11],[36.6],[17.1],[9.9],[18.6],[30.4],[18.6],[30.3],[13],[22.1],[13.5],[46.6],[25.6],[13.8],[44.9],[64.3],[14.3],[48.5],[10.8],[25.4],[24.3],[43.9],[26.3],[34.4],[28.6],[14.6],[29.6],[31],[20.2],[39.6],[33.8],[17.7],[24.7],[35.1],[19.3],[28.7],[10.8],[15.5],[59],[17.6],[18.6],[72.1],[26.9],[22],[25.9],[17.4],[45.8],[27.3],[30.8],[44.6]]}}},"fed":["latencies"],"bound":[],"accepts":["application/vnd.wmn.table+json","application/json"],"theme":{"light":{"--wmn-color-surface":"#fdf8f6","--wmn-color-surface-container-lowest":"#ffffff","--wmn-color-surface-container":"#f2edeb","--wmn-color-surface-container-high":"#ece7e5","--wmn-color-on-surface":"#1c1b1a","--wmn-color-on-surface-variant":"#57423c","--wmn-color-outline":"#8b716a","--wmn-color-outline-variant":"#dec0b8","--wmn-color-primary":"#a03a19","--wmn-color-on-primary":"#ffffff","--wmn-color-secondary":"#0051d5","--wmn-color-tertiary":"#006b2f","--wmn-color-error":"#ba1a1a","--wmn-color-warning":"#8a4f00","--wmn-color-output-bg":"#ffffff","--wmn-color-code-bg":"#f2edeb","--wmn-color-code-text":"#1c1b1a","--wmn-color-syntax-keyword":"#0051d5","--wmn-color-syntax-string":"#006b2f","--wmn-color-syntax-number":"#8a4f00","--wmn-color-syntax-comment":"#57423c","--wmn-color-syntax-function":"#7a2fbe","--wmn-color-syntax-variable":"#1c1b1a","--wmn-color-syntax-type":"#006a6a","--wmn-color-syntax-operator":"#1c1b1a","--wmn-color-syntax-punctuation":"#1c1b1a","--wmn-color-chart-1":"#a03a19","--wmn-color-chart-2":"#0051d5","--wmn-color-chart-3":"#006b2f","--wmn-color-chart-4":"#7c5800","--wmn-color-chart-5":"#7a2fbe","--wmn-color-chart-6":"#006a6a","--wmn-color-chart-7":"#9c4146","--wmn-color-chart-8":"#57423c","--wmn-color-chart-grid":"#dec0b8","--wmn-color-chart-axis":"#8b716a","--wmn-color-chart-label":"#57423c","--wmn-color-chart-title":"#1c1b1a","--wmn-font-display":"\"EB Garamond\", \"wmn EB Garamond fallback\", Garamond, \"Times New Roman\", serif","--wmn-font-text":"Geist, \"wmn Geist fallback\", ui-sans-serif, system-ui, sans-serif","--wmn-font-code":"\"JetBrains Mono\", \"wmn JetBrains Mono fallback\", ui-monospace, SFMono-Regular, Menlo, monospace","--wmn-text-body-md-size":"1rem","--wmn-text-body-md-line":"1.6rem","--wmn-text-body-sm-size":"0.875rem","--wmn-text-body-sm-line":"1.4rem","--wmn-text-label-md-size":"0.8125rem","--wmn-text-code-block-size":"0.8125rem","--wmn-text-code-block-line":"1.5rem","--wmn-text-headline-sm-size":"1.375rem","--wmn-text-headline-sm-line":"1.875rem","--wmn-radius":"0.25rem","--wmn-radius-lg":"0.5rem"},"dark":{"--wmn-color-surface":"#131312","--wmn-color-surface-container-lowest":"#0e0e0d","--wmn-color-surface-container":"#20201e","--wmn-color-surface-container-high":"#2a2a29","--wmn-color-on-surface":"#e5e2e0","--wmn-color-on-surface-variant":"#dec0b8","--wmn-color-outline":"#a68b83","--wmn-color-outline-variant":"#57423c","--wmn-color-primary":"#ffb59f","--wmn-color-on-primary":"#5e1600","--wmn-color-secondary":"#f0bd8b","--wmn-color-tertiary":"#bbcbb6","--wmn-color-error":"#ffb4ab","--wmn-color-warning":"#ffb86e","--wmn-color-output-bg":"#0e0e0d","--wmn-color-code-bg":"#20201e","--wmn-color-code-text":"#e5e2e0","--wmn-color-syntax-keyword":"#e66d47","--wmn-color-syntax-string":"#bbcbb6","--wmn-color-syntax-number":"#dcb8ff","--wmn-color-syntax-comment":"#859581","--wmn-color-syntax-function":"#f0bd8b","--wmn-color-syntax-variable":"#e5e2e0","--wmn-color-syntax-type":"#a8c7fa","--wmn-color-syntax-operator":"#e5e2e0","--wmn-color-syntax-punctuation":"#e5e2e0","--wmn-color-chart-1":"#ffb59f","--wmn-color-chart-2":"#a8c7fa","--wmn-color-chart-3":"#bbcbb6","--wmn-color-chart-4":"#f0bd8b","--wmn-color-chart-5":"#dcb8ff","--wmn-color-chart-6":"#4fd8d8","--wmn-color-chart-7":"#ffb2b7","--wmn-color-chart-8":"#dec0b8","--wmn-color-chart-grid":"#57423c","--wmn-color-chart-axis":"#a68b83","--wmn-color-chart-label":"#dec0b8","--wmn-color-chart-title":"#e5e2e0","--wmn-font-display":"\"EB Garamond\", \"wmn EB Garamond fallback\", Garamond, \"Times New Roman\", serif","--wmn-font-text":"Geist, \"wmn Geist fallback\", ui-sans-serif, system-ui, sans-serif","--wmn-font-code":"\"JetBrains Mono\", \"wmn JetBrains Mono fallback\", ui-monospace, SFMono-Regular, Menlo, monospace","--wmn-text-body-md-size":"1rem","--wmn-text-body-md-line":"1.6rem","--wmn-text-body-sm-size":"0.875rem","--wmn-text-body-sm-line":"1.4rem","--wmn-text-label-md-size":"0.8125rem","--wmn-text-code-block-size":"0.8125rem","--wmn-text-code-block-line":"1.5rem","--wmn-text-headline-sm-size":"1.375rem","--wmn-text-headline-sm-line":"1.875rem","--wmn-radius":"0.25rem","--wmn-radius-lg":"0.5rem"}}}</script>
+<noscript><div class="wmn-live-fallback"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iMTIwIiB2aWV3Qm94PSIwIDAgMzIwIDEyMCIgcm9sZT0iaW1nIj48dGl0bGU+SGlzdG9ncmFtIGFuZCBDREY8L3RpdGxlPjxyZWN0IHdpZHRoPSIzMjAiIGhlaWdodD0iMTIwIiByeD0iNiIgZmlsbD0iI2YyZWRlYiIvPjxwYXRoIGQ9Ik0yOCAxMnY4NmgyNzIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzhiNzE2YSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48cmVjdCB4PSIzNCIgeT0iOTAiIHdpZHRoPSIyMiIgaGVpZ2h0PSI4IiBmaWxsPSIjYTAzYTE5IiBmaWxsLW9wYWNpdHk9Ii43NSIvPjxyZWN0IHg9IjU4IiB5PSI4MiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjE2IiBmaWxsPSIjYTAzYTE5IiBmaWxsLW9wYWNpdHk9Ii43NSIvPjxyZWN0IHg9IjgyIiB5PSI2OCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjMwIiBmaWxsPSIjYTAzYTE5IiBmaWxsLW9wYWNpdHk9Ii43NSIvPjxyZWN0IHg9IjEwNiIgeT0iNDYiIHdpZHRoPSIyMiIgaGVpZ2h0PSI1MiIgZmlsbD0iI2EwM2ExOSIgZmlsbC1vcGFjaXR5PSIuNzUiLz48cmVjdCB4PSIxMzAiIHk9IjI4IiB3aWR0aD0iMjIiIGhlaWdodD0iNzAiIGZpbGw9IiNhMDNhMTkiIGZpbGwtb3BhY2l0eT0iLjc1Ii8+PHJlY3QgeD0iMTU0IiB5PSIzOCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjYwIiBmaWxsPSIjYTAzYTE5IiBmaWxsLW9wYWNpdHk9Ii43NSIvPjxyZWN0IHg9IjE3OCIgeT0iNTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSI0MCIgZmlsbD0iI2EwM2ExOSIgZmlsbC1vcGFjaXR5PSIuNzUiLz48cmVjdCB4PSIyMDIiIHk9Ijc0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjQiIGZpbGw9IiNhMDNhMTkiIGZpbGwtb3BhY2l0eT0iLjc1Ii8+PHJlY3QgeD0iMjI2IiB5PSI4NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjEyIiBmaWxsPSIjYTAzYTE5IiBmaWxsLW9wYWNpdHk9Ii43NSIvPjxyZWN0IHg9IjI1MCIgeT0iOTIiIHdpZHRoPSIyMiIgaGVpZ2h0PSI2IiBmaWxsPSIjYTAzYTE5IiBmaWxsLW9wYWNpdHk9Ii43NSIvPjxwYXRoIGQ9Ik0zNCA5NiBMNTggOTQgTDgyIDg4IEwxMDYgNzQgTDEzMCA1MiBMMTU0IDM0IEwxNzggMjIgTDIwMiAxNiBMMjI2IDEzIEwyNTAgMTIgTDI3NCAxMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDA1MWQ1IiBzdHJva2Utd2lkdGg9IjMiLz48L3N2Zz4K" alt="Preview of Histogram and CDF"><p><strong>Histogram and CDF</strong></p><p>How the values of one column are spread: bins, cumulative share, median and the P95 and P99 tails</p><p>This live view needs JavaScript.</p></div></noscript>
+<script>if (self.origin !== "null") throw new Error("a live frame runs only in a sandboxed frame");
+for (const n of ["RTCPeerConnection", "webkitRTCPeerConnection", "mozRTCPeerConnection"]) { try { Object.defineProperty(self, n, { value: undefined, configurable: false, writable: false }); } catch (e) {} }
+(function () { var n = Array.prototype.join.call(crypto.getRandomValues(new Uint32Array(4)), "-"); Object.defineProperty(self, "__wmnLiveNonce", { value: n, configurable: true }); addEventListener("pagehide", function () { try { parent.postMessage({ wmn: "live", t: "leaving", nonce: n }, "*"); } catch (e) {} }, true); })();
+// Generated by packages/design/build.ts from tokens/*.json. Do not edit; run `bun run build` in packages/design.
+// Template of generated/frame-theme.js: the theme runtime of an output frame (D-016, docs/design-system.md section 6).
+// The output origin serves it as /lib/wmn-frame-theme.js and frame.html loads it before its bootstrap, so it runs
+// before any output code. The build fills in the markers below.
+//
+//  - Puts the self-hosted font faces (served by the output origin under /lib/fonts/, CSP `font-src 'self'`) and the
+//    frame's base styles into the document. The base styles apply only once a theme was applied
+//    (`html[data-wmn-theme]`), so a frame that is never sent a theme looks as it did before.
+//  - Hands the bootstrap one function, apply(msg), through self.__wmnFrameTheme (the bootstrap takes it and deletes
+//    the global before output code runs). apply validates the message (frame-validate.js) and writes the values as
+//    custom properties on the frame's root, sets color-scheme, then tells chart renderers.
+//  - Gives output code a read-only helper, self.__wmnTheme: current(), get(name), vega(), plotlyLayout(layout),
+//    onChange(fn). wmn's chart templates use it; an output may too. No callback or code crosses from the app: only
+//    validated strings.
+(() => {
+  const SPEC = {"themes":["light","dark"],"types":{"--wmn-color-surface":"color","--wmn-color-surface-container-lowest":"color","--wmn-color-surface-container":"color","--wmn-color-surface-container-high":"color","--wmn-color-on-surface":"color","--wmn-color-on-surface-variant":"color","--wmn-color-outline":"color","--wmn-color-outline-variant":"color","--wmn-color-primary":"color","--wmn-color-on-primary":"color","--wmn-color-secondary":"color","--wmn-color-tertiary":"color","--wmn-color-error":"color","--wmn-color-warning":"color","--wmn-color-output-bg":"color","--wmn-color-code-bg":"color","--wmn-color-code-text":"color","--wmn-color-syntax-keyword":"color","--wmn-color-syntax-string":"color","--wmn-color-syntax-number":"color","--wmn-color-syntax-comment":"color","--wmn-color-syntax-function":"color","--wmn-color-syntax-variable":"color","--wmn-color-syntax-type":"color","--wmn-color-syntax-operator":"color","--wmn-color-syntax-punctuation":"color","--wmn-color-chart-1":"color","--wmn-color-chart-2":"color","--wmn-color-chart-3":"color","--wmn-color-chart-4":"color","--wmn-color-chart-5":"color","--wmn-color-chart-6":"color","--wmn-color-chart-7":"color","--wmn-color-chart-8":"color","--wmn-color-chart-grid":"color","--wmn-color-chart-axis":"color","--wmn-color-chart-label":"color","--wmn-color-chart-title":"color","--wmn-font-display":"fontFamily","--wmn-font-text":"fontFamily","--wmn-font-code":"fontFamily","--wmn-text-body-md-size":"dimension","--wmn-text-body-md-line":"dimension","--wmn-text-body-sm-size":"dimension","--wmn-text-body-sm-line":"dimension","--wmn-text-label-md-size":"dimension","--wmn-text-code-block-size":"dimension","--wmn-text-code-block-line":"dimension","--wmn-text-headline-sm-size":"dimension","--wmn-text-headline-sm-line":"dimension","--wmn-radius":"dimension","--wmn-radius-lg":"dimension"}};
+  const CSS = "html[data-wmn-theme] {\n  background-color: var(--wmn-color-output-bg);\n  color: var(--wmn-color-on-surface);\n  font-family: var(--wmn-font-text);\n  font-size: var(--wmn-text-body-md-size);\n  line-height: var(--wmn-text-body-md-line);\n}\nhtml[data-wmn-theme] :where(h1, h2, h3, h4) {\n  font-family: var(--wmn-font-display);\n  font-size: var(--wmn-text-headline-sm-size);\n  line-height: var(--wmn-text-headline-sm-line);\n  font-weight: 500;\n}\nhtml[data-wmn-theme] :where(code, pre, kbd, samp) {\n  font-family: var(--wmn-font-code);\n  font-size: var(--wmn-text-code-block-size);\n}\nhtml[data-wmn-theme] :where(a) { color: var(--wmn-color-primary); }\nhtml[data-wmn-theme] :where(table) { border-collapse: collapse; font-size: var(--wmn-text-body-sm-size); }\nhtml[data-wmn-theme] :where(th, td) { border: 1px solid var(--wmn-color-outline-variant); padding: 0.25rem 0.5rem; }\nhtml[data-wmn-theme] :where(th) { background-color: var(--wmn-color-surface-container-high); }\n";
+  // Validation of the theme message an output frame receives over its MessagePort (D-016, docs/design-system.md
+// section 6). One source for both sides: the app's output host checks a message before sending it, and the frame
+// bootstrap (generated/frame-theme.js embeds this file) checks it again before writing anything. Plain JS with no
+// imports so it can be embedded in the frame's classic script.
+//
+// spec = { themes: ['light', 'dark'], types: { '--wmn-color-surface': 'color', ... } }  (generated/frame-theme.json)
+// msg  = { t: 'theme', theme: 'light' | 'dark', vars: { '--wmn-…': value, ... }, n?: number }
+//
+// Returns null when the message is acceptable, else a short reason. Every key of `types` must be present and no
+// other key; every value is a short string of its key's kind; nothing that CSS could read as a URL, a function, a
+// rule, a comment or another declaration gets through.
+function validateTheme(msg, spec) {
+  const hasOwn = Object.prototype.hasOwnProperty;
+  if (!msg || typeof msg !== "object" || Array.isArray(msg)) return "shape";
+  const top = Object.keys(msg);
+  for (let i = 0; i < top.length; i++) {
+    if (top[i] !== "t" && top[i] !== "theme" && top[i] !== "vars" && top[i] !== "n")
+      return `shape:${String(top[i]).slice(0, 40)}`;
+  }
+  if (msg.t !== "theme") return "shape:t";
+  if (hasOwn.call(msg, "n") && !(Number.isSafeInteger(msg.n) && msg.n >= 0)) return "shape:n";
+  if (spec.themes.indexOf(msg.theme) < 0) return "theme";
+  const vars = msg.vars;
+  if (!vars || typeof vars !== "object" || Array.isArray(vars)) return "vars";
+  const proto = Object.getPrototypeOf(vars);
+  if (proto !== Object.prototype && proto !== null) return "vars";
+  const types = spec.types;
+  const want = Object.keys(types);
+  const keys = Object.keys(vars);
+  // Counted before anything is looked at: a message with 10,000 keys costs one Object.keys and is refused.
+  if (keys.length > want.length) return "too-many-keys";
+  for (let k = 0; k < keys.length; k++) {
+    if (!hasOwn.call(types, keys[k])) return `unknown-key:${String(keys[k]).slice(0, 60)}`;
+  }
+  if (keys.length !== want.length) return "missing-key";
+  for (let j = 0; j < want.length; j++) {
+    const name = want[j];
+    const why = checkValue(types[name], vars[name]);
+    if (why) return `${why}:${name}`;
+  }
+  return null;
+}
+
+const FAMILY = '(?:"[A-Za-z0-9 -]{1,64}"|[A-Za-z][A-Za-z0-9-]{0,63})';
+const CHECKS = {
+  color: /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/,
+  dimension: /^(?:0|-?\d{1,4}(?:\.\d{1,5})?(?:px|rem|em))$/,
+  fontWeight: /^[1-9]00$/,
+  number: /^\d{1,4}(?:\.\d{1,4})?$/,
+  fontFamily: new RegExp(`^${FAMILY}(?:, ${FAMILY}){0,9}$`),
+};
+
+function checkValue(type, v) {
+  if (typeof v !== "string") return "value-type";
+  if (v.length > 240) return "value-long";
+  const re = CHECKS[type];
+  if (!re) return "spec";
+  if (!re.test(v)) return "value";
+  return null;
+}
+
+  // Vega-Lite config and plotly layout from the theme's custom properties (docs/design-system.md section 6.3): wmn's
+// own chart renderers style every chart from the tokens, so the output's code never needs to know about themes.
+// One source for both sides: generated/charts.ts holds the result per theme (for the app and published pages), and
+// generated/frame-theme.js embeds this file so a renderer inside an output frame builds the same config from the
+// theme message it was sent. Plain JS, no imports.
+//
+// get(name) returns the value of a `--wmn-…` property ("" when unset).
+function chartConfig(get) {
+  const px = (v) => {
+    const n = parseFloat(v);
+    return /rem$/.test(v) ? n * 16 : n;
+  };
+  const c = (n) => get(`--wmn-color-${n}`);
+  const palette = [];
+  for (let i = 1; i <= 8; i++) palette.push(c(`chart-${i}`));
+  const font = get("--wmn-font-text");
+  const display = get("--wmn-font-display");
+  const size = px(get("--wmn-text-label-md-size"));
+  const axisColors = {
+    gridcolor: c("chart-grid"),
+    linecolor: c("chart-axis"),
+    zerolinecolor: c("chart-axis"),
+    tickcolor: c("chart-axis"),
+    tickfont: { family: font, color: c("chart-label"), size: size },
+    title: { font: { family: font, color: c("chart-title"), size: size } },
+  };
+  return {
+    vega: {
+      background: c("output-bg"),
+      font: font,
+      view: { stroke: null },
+      axis: {
+        domainColor: c("chart-axis"),
+        tickColor: c("chart-axis"),
+        gridColor: c("chart-grid"),
+        labelColor: c("chart-label"),
+        titleColor: c("chart-title"),
+        labelFont: font,
+        titleFont: font,
+        labelFontSize: size,
+        titleFontSize: size,
+        titleFontWeight: 500,
+      },
+      legend: { labelColor: c("chart-label"), titleColor: c("chart-title"), labelFont: font, titleFont: font },
+      title: { color: c("chart-title"), font: display },
+      range: { category: palette },
+      mark: { color: palette[0] },
+    },
+    plotly: {
+      paper_bgcolor: c("output-bg"),
+      plot_bgcolor: c("output-bg"),
+      colorway: palette,
+      font: { family: font, color: c("chart-label"), size: size },
+      title: { font: { family: display, color: c("chart-title") } },
+      legend: { font: { family: font, color: c("chart-label") } },
+      axis: axisColors,
+    },
+  };
+}
+
+// A plotly layout with the theme applied: the output's own layout keys win, every axis it has (xaxis, yaxis2, ...)
+// gets the axis colours.
+function plotlyLayout(theme, layout) {
+  const out = {};
+  let k;
+  for (k in theme) if (k !== "axis") out[k] = theme[k];
+  for (k in layout) {
+    if (!Object.hasOwn(layout, k)) continue;
+    out[k] = layout[k];
+  }
+  const axes = ["xaxis", "yaxis"];
+  for (k in layout) if (/^[xy]axis\d+$/.test(k)) axes.push(k);
+  for (let i = 0; i < axes.length; i++) {
+    const own = layout[axes[i]] || {};
+    const merged = {};
+    for (k in theme.axis) merged[k] = theme.axis[k];
+    for (k in own) merged[k] = own[k];
+    out[axes[i]] = merged;
+  }
+  return out;
+}
+
+  const apply_ = Reflect.apply;
+  const setTimeout_ = self.setTimeout.bind(self);
+  const setProperty = CSSStyleDeclaration.prototype.setProperty;
+  const setAttribute = Element.prototype.setAttribute;
+  const root = document.documentElement;
+  const rootStyle = root.style;
+  let current = null;
+  let lastN = -1;
+  const listeners = [];
+
+  const style = document.createElement("style");
+  style.id = "wmn-frame-theme";
+  style.textContent = CSS;
+  (document.head || root).appendChild(style);
+
+  function apply(msg) {
+    const why = validateTheme(msg, SPEC);
+    if (why) return why;
+    // an older theme than the one applied is refused (the host numbers them; review F10)
+    if (typeof msg.n === "number" && msg.n < lastN) return "stale";
+    if (typeof msg.n === "number") lastN = msg.n;
+    const names = Object.keys(SPEC.types);
+    const vars = msg.vars;
+    const copy = {};
+    for (let i = 0; i < names.length; i++) {
+      apply_(setProperty, rootStyle, [names[i], vars[names[i]]]);
+      copy[names[i]] = vars[names[i]];
+    }
+    apply_(setProperty, rootStyle, ["color-scheme", msg.theme]);
+    apply_(setAttribute, root, ["data-wmn-theme", msg.theme]);
+    current = { theme: msg.theme, vars: copy };
+    notifySoon();
+    return null;
+  }
+
+  // Listeners (chart renderers) hear of a change in a task of their own, never inside the port message, and at most
+  // once per NOTIFY_MS (the first change at once, the last one of a burst always): a host switching themes 100 times
+  // must not queue 100 chart redraws. Measured before this: 100 switches 20 ms apart queued a redraw of every chart
+  // per message in the shared output process, pings waited behind them, and the watchdog stopped the HTML frames
+  // that shared that process.
+  const NOTIFY_MS = 250;
+  let lastNotify = -Infinity;
+  let notifyTimer = null;
+  function notifySoon() {
+    if (notifyTimer !== null) return;
+    const wait = Math.max(0, lastNotify + NOTIFY_MS - Date.now());
+    notifyTimer = setTimeout_(() => {
+      notifyTimer = null;
+      lastNotify = Date.now();
+      const fns = listeners.slice();
+      for (let j = 0; j < fns.length; j++) {
+        try {
+          fns[j](current.theme);
+        } catch (_e) {}
+      }
+    }, wait);
+  }
+
+  Object.defineProperty(self, "__wmnFrameTheme", {
+    value: { apply: apply },
+    configurable: true,
+    writable: false,
+    enumerable: false,
+  });
+  const helper = Object.freeze({
+    current: () => (current ? current.theme : null),
+    get: (name) => (current && Object.hasOwn(current.vars, name) ? current.vars[name] : ""),
+    vega: () => (current ? chartConfig(helper.get).vega : undefined),
+    plotlyLayout: (layout) => (current ? plotlyLayout(chartConfig(helper.get).plotly, layout || {}) : layout || {}),
+    onChange: (fn) => {
+      if (typeof fn === "function") listeners.push(fn);
+    },
+  });
+  Object.defineProperty(self, "__wmnTheme", { value: helper, configurable: false, writable: false, enumerable: false });
+})();
+</script>
+<script>if (self.origin !== "null") throw new Error("a live frame runs only in a sandboxed frame");
+// wmn output frame bootstrap. Served from the output origin (a different site from the app) with
+// `Content-Security-Policy: sandbox allow-scripts; ...`, and embedded with sandbox="allow-scripts", so this document
+// has an opaque origin. It holds no secrets: the host sends the output's HTML over a MessagePort and this script
+// inserts it into the document, running its scripts in document order (external scripts are awaited, as a parser
+// would).
+//
+// Protocol (host -> frame, on the port): {t:'ping', n} | {t:'render', html} | {t:'theme', theme, vars, n}
+//           | {t:'view', code, assets, block, values, data, cpu} | {t:'values', values} | {t:'data', name, mime, value}
+//             (library block views, P-E9: an ES module from a pinned package, see startView below)
+//           (frame -> host, on the port): {t:'pong', n, cpu} | {t:'cpu', cpu} | {t:'rendering'} | {t:'size', h}
+//                                         | {t:'done', info}
+//                                         | {t:'set', key, value} | {t:'run', block} | {t:'status', text} (views only)
+//                                         | {t:'themed', n} | {t:'theme-refused', n, why}
+//                                         | {t:'input'} (the reader's own input reached this frame)
+//                                         | {t:'leaving'} (this document is being unloaded: it navigated)
+// The only window-level messages are {wmn:'ready'} (frame -> parent) and {wmn:'init'} + port (parent -> frame).
+(function () {
+  'use strict'
+  // Originals first: output code runs in this same global and may replace prototypes or globals afterwards.
+  var apply = Reflect.apply
+  var defineProperty = Object.defineProperty
+  var getOwn = Object.getOwnPropertyDescriptor
+  var addL = EventTarget.prototype.addEventListener
+  var stopImmediate = Event.prototype.stopImmediatePropagation
+  var hasFocus = Document.prototype.hasFocus
+  var setAttr = Element.prototype.setAttribute
+  var setTimeout_ = self.setTimeout
+  var post = MessagePort.prototype.postMessage
+  var doc = document
+  var noop = function () {}
+  var port = null
+  function send(msg) { if (port) apply(post, port, [msg]) }
+  function on(target, type, fn) { apply(addL, target, [type, fn, true]) }
+
+  // The theme runtime (/lib/wmn-frame-theme.js, generated by packages/design; P-E6, D-016) ran just before this
+  // script and left one function here. Taken and removed before any output code runs: only the host's theme
+  // message, over the port, can call it. It validates the message (unknown keys, non-token values, CSS or url() in a
+  // value, oversized messages are refused) and writes the variables on this document's root.
+  var themeApi = null
+  try {
+    themeApi = self.__wmnFrameTheme || null
+    delete self.__wmnFrameTheme
+  } catch (x) {}
+
+  // Session history is shared with the app's tab ("joint session history"). Firefox and WebKit let a sandboxed
+  // cross-site frame traverse it: history.back()/go(-n) here moves the APP back, to an earlier document too
+  // (measured; Chromium blocks it). Output code runs in this realm only (nested frames are sandboxed, so opaque
+  // and cross-origin to it; no popups, no workers), so taking the traversal methods away here, for good, closes
+  // that route. pushState/replaceState would add or edit entries of the tab's history: also removed.
+  function lock(proto, names) {
+    if (!proto) return
+    for (var i = 0; i < names.length; i++) {
+      if (names[i] in proto) defineProperty(proto, names[i], { value: noop, writable: false, configurable: false, enumerable: true })
+    }
+  }
+  lock(self.History && History.prototype, ['back', 'forward', 'go', 'pushState', 'replaceState'])
+  lock(self.Navigation && Navigation.prototype, ['back', 'forward', 'traverseTo'])
+  lock(self, ['back', 'forward']) // old non-standard Window.back()/forward()
+
+  // Worklets (audio, paint) run module code on threads of their own, outside the watchdog's pings and the CPU account;
+  // a worklet module that never returns burns a core for as long as the frame lives (P-E9 review F3, Chromium and
+  // Firefox). Output code gets no worklets: addModule refuses, before any output code runs. (Workers are off by CSP.)
+  var refuseWorklet = function () { return Promise.reject(new DOMException('Worklets are off in wmn outputs', 'NotAllowedError')) }
+  if (self.Worklet && Worklet.prototype && 'addModule' in Worklet.prototype) {
+    defineProperty(Worklet.prototype, 'addModule', { value: refuseWorklet, writable: false, configurable: false, enumerable: true })
+  }
+  if (self.AudioWorklet && AudioWorklet.prototype && Object.prototype.hasOwnProperty.call(AudioWorklet.prototype, 'addModule')) {
+    defineProperty(AudioWorklet.prototype, 'addModule', { value: refuseWorklet, writable: false, configurable: false, enumerable: true })
+  }
+
+  // Download links. Outputs cannot download (no allow-downloads); WebKit turned a click on a blob: download link into a
+  // navigation of the frame, which the app's frame-src (frame.html only since P-E9 review F9) blocks, and the host then
+  // stops the output as "navigated" before its own messages arrive. A click (trusted or from code) on an <a>/<area> with
+  // a download attribute is cancelled here, before any output listener sees it: it does nothing, in every browser.
+  var closest = Element.prototype.closest
+  var preventDefault = Event.prototype.preventDefault
+  on(self, 'click', function (e) {
+    var t = e.target
+    var link = null
+    try { link = t && t.nodeType === 1 ? apply(closest, t, ['a[download],area[download]']) : null } catch (x) {}
+    if (link) apply(preventDefault, e, [])
+  })
+
+  // The lock above lives in this document only. A document the output navigates its frame to (location =
+  // 'data:...', a meta refresh, open(url, '_self'), a link) would have fresh prototypes. Three layers, none of them
+  // here (the Navigation API that could cancel such navigations from this document is off in opaque-origin
+  // documents): the app's CSP frame-src allows its output frames to show frame.html only, so the browser blocks
+  // those navigations; the host drops allow-scripts from the iframe's sandbox once this document is running, so
+  // whatever document does land in the frame runs no script; and this document reports 'leaving' on pagehide, so the
+  // host removes the frame at once (Chromium commits an error page for a blocked navigation, which would otherwise
+  // add an entry to the tab's history).
+  //
+  // document.open() (and write()/writeln() on a loaded document, which call it) would erase every event listener of
+  // this document and window, the guards below included: they do nothing here.
+  var docOpen = function () { return this }
+  var docNames = ['open', 'write', 'writeln']
+  for (var dn = 0; dn < docNames.length; dn++) {
+    defineProperty(Document.prototype, docNames[dn], { value: docNames[dn] === 'open' ? docOpen : noop, writable: false, configurable: false, enumerable: true })
+  }
+
+  // CPU accounting (P-E6 review F1). Where frames share the editor's thread (WebKit, Firefox without Fission) the host
+  // cannot tell from its own late timers which frame kept the thread busy, so each frame measures the time its own
+  // callbacks take and reports the total with every pong; the host stops a frame over its CPU budget and excuses the
+  // other frames' late pongs. Every way output code gets called back is wrapped before output code runs: timers,
+  // animation frames, idle callbacks, event listeners and on* handlers, observers. A callback's time runs until the
+  // microtasks it queued have run (a few levels deep: async continuations). Nested calls are counted once. Output
+  // code that deliberately hides work in deeper microtask chains could escape; charts (the outputs that run on the
+  // editor's thread without the reader's opt-in) are wmn's renderers on data and do not.
+  var now_ = performance.now.bind(performance)
+  var queueMicro = self.queueMicrotask.bind(self)
+  var WM = self.WeakMap
+  var cpuMs = 0
+  var taskStart = 0
+  var measuredFns = new WM()
+  function tail(level) {
+    if (level < 16) return queueMicro(function () { tail(level + 1) })
+    var end = now_()
+    var took = end - taskStart
+    cpuMs += took
+    taskStart = 0
+    // a long callback is reported at once (the next pong may wait behind the next one), at most every 250 ms
+    if (took > 100 && end - lastCpuReport > 250) {
+      lastCpuReport = end
+      send({ t: 'cpu', cpu: Math.round(cpuMs) })
+    }
+  }
+  var lastCpuReport = -1e9
+  function measured(fn) {
+    if (typeof fn !== 'function') return fn
+    var w = measuredFns.get(fn)
+    if (w) return w
+    w = function () {
+      if (taskStart) return apply(fn, this, arguments)
+      taskStart = now_() || 1e-9
+      try {
+        return apply(fn, this, arguments)
+      } finally {
+        tail(0)
+      }
+    }
+    measuredFns.set(fn, w)
+    return w
+  }
+  function wrapCallbackArg(owner, name) {
+    var orig = owner && owner[name]
+    if (typeof orig !== 'function') return
+    defineProperty(owner, name, {
+      value: function (cb) {
+        var args = Array.prototype.slice.call(arguments)
+        args[0] = measured(cb)
+        return apply(orig, this, args)
+      },
+      writable: false,
+      configurable: false,
+      enumerable: true,
+    })
+  }
+  // Installed when the host asks for it with the content (only where frames share the editor's thread: elsewhere the
+  // frame's work does not slow the editor, and the wrappers cost Chromium's 100-output load test 16 -> 36-56 ms p95
+  // typing), still before any output code runs.
+  var cpuOn = false
+  function installCpuAccounting() {
+    if (cpuOn) return
+    cpuOn = true
+    wrapCallbackArg(self, 'setTimeout')
+    wrapCallbackArg(self, 'setInterval')
+    wrapCallbackArg(self, 'requestAnimationFrame')
+    wrapCallbackArg(self, 'requestIdleCallback')
+    var observers = ['MutationObserver', 'ResizeObserver', 'IntersectionObserver', 'PerformanceObserver']
+    for (var ob = 0; ob < observers.length; ob++) {
+      (function (Orig) {
+        if (typeof Orig !== 'function') return
+        var Wrapped = function (cb, o) {
+          return new Orig(measured(cb), o)
+        }
+        Wrapped.prototype = Orig.prototype
+        defineProperty(self, Orig.name, { value: Wrapped, writable: false, configurable: false, enumerable: false })
+      })(self[observers[ob]])
+    }
+    // on* handler properties (onclick, onmessage, ...), wherever they are defined
+    var handlerHosts = [self, self.Window && Window.prototype, self.Document && Document.prototype, self.HTMLElement && HTMLElement.prototype,
+      self.SVGElement && SVGElement.prototype, self.MessagePort && MessagePort.prototype, self.EventSource && EventSource.prototype]
+    for (var hh = 0; hh < handlerHosts.length; hh++) {
+      var hostObj = handlerHosts[hh]
+      if (!hostObj) continue
+      var names = Object.getOwnPropertyNames(hostObj)
+      for (var hn = 0; hn < names.length; hn++) {
+        if (names[hn].slice(0, 2) !== 'on' || names[hn] === 'onbeforeunload') continue
+        var dsc = getOwn(hostObj, names[hn])
+        if (!dsc || !dsc.set || !dsc.configurable) continue
+        ;(function (d, n) {
+          defineProperty(hostObj, n, {
+            get: d.get,
+            set: function (v) { apply(d.set, this, [measured(v)]) },
+            configurable: false,
+            enumerable: d.enumerable,
+          })
+        })(dsc, names[hn])
+      }
+    }
+  }
+
+  // Whatever unloads this document (a navigation, or the host removing the frame):
+  // the host hears of it, and output code gets no unload-time handlers. Removing a frame runs them synchronously on
+  // the remover's thread in WebKit (the editor's thread: a spinning pagehide froze it), and in every browser they run
+  // after the host stopped listening. Registered first and capturing at the window, so they see every such event
+  // before any listener or on* handler of the output and end it there.
+  var unloadEvents = ['pagehide', 'unload', 'pageswap']
+  for (var u = 0; u < unloadEvents.length; u++) {
+    on(self, unloadEvents[u], function (e) {
+      if (e.type === 'pagehide') send({ t: 'leaving' })
+      apply(stopImmediate, e, [])
+    })
+  }
+  // beforeunload is different: a frame with a beforeunload handler must be asked before it may be navigated away,
+  // and a frame that spins never answers; measured in Chromium, the host's teardown (navigate to about:blank) of a
+  // spinning frame with one waited ~10 s with a core busy, without one ~1 s. So there is none here, and output code
+  // cannot add one (it could not show its prompt anyway: no allow-modals).
+  var addOrig = addL
+  defineProperty(EventTarget.prototype, 'addEventListener', {
+    value: function (type) {
+      if (this === self && String(type).toLowerCase() === 'beforeunload') return
+      if (!cpuOn) return apply(addOrig, this, arguments)
+      var args = Array.prototype.slice.call(arguments)
+      args[1] = measured(args[1])
+      return apply(addOrig, this, args)
+    },
+    writable: false,
+    configurable: false,
+    enumerable: true,
+  })
+  var removeOrig = EventTarget.prototype.removeEventListener
+  defineProperty(EventTarget.prototype, 'removeEventListener', {
+    value: function () {
+      var args = Array.prototype.slice.call(arguments)
+      if (typeof args[1] === 'function') args[1] = measuredFns.get(args[1]) || args[1]
+      return apply(removeOrig, this, args)
+    },
+    writable: false,
+    configurable: false,
+    enumerable: true,
+  })
+  var inertHandler = { get: function () { return null }, set: noop, configurable: false, enumerable: true }
+  var handlerOwners = [self, self.HTMLBodyElement && HTMLBodyElement.prototype, self.HTMLFrameSetElement && HTMLFrameSetElement.prototype]
+  for (var h = 0; h < handlerOwners.length; h++) {
+    try { if (handlerOwners[h]) defineProperty(handlerOwners[h], 'onbeforeunload', inertHandler) } catch (x) {}
+  }
+  on(self, 'visibilitychange', function (e) { if (doc.visibilityState === 'hidden') apply(stopImmediate, e, []) })
+
+  // Keyboard focus. An output may take focus only while it has it already (the reader clicked or tabbed into it)
+  // or while handling the reader's own input event; otherwise focus(), select(), dialog show/showModal (focusing
+  // steps), popovers and window.focus() do nothing, so an output cannot pull the caret away from the editor and read
+  // keys typed for it. (Autofocus in a cross-origin frame is already ignored by the browsers.) The host also returns
+  // focus to the app if an output ends up focused without the reader's input (wmn-output-host.js, focus guard).
+  var userTurn = false
+  var lastInputSent = 0
+  function endTurn() { userTurn = false }
+  function onUser(e) {
+    if (!e.isTrusted) return // isTrusted cannot be forged: synthetic events from output code are false
+    userTurn = true
+    apply(setTimeout_, self, [endTurn, 0])
+    var n = Date.now()
+    if (n - lastInputSent > 200) { lastInputSent = n; send({ t: 'input' }) }
+  }
+  var userEvents = ['pointerdown', 'mousedown', 'touchstart', 'keydown', 'click']
+  for (var k = 0; k < userEvents.length; k++) on(self, userEvents[k], onUser)
+  function mayFocus() {
+    try { return userTurn || apply(hasFocus, doc, []) } catch (x) { return false }
+  }
+  function guard(proto, name, otherwise) {
+    var d = proto && getOwn(proto, name)
+    if (!d || typeof d.value !== 'function') return
+    var orig = d.value
+    defineProperty(proto, name, {
+      value: function () {
+        if (mayFocus()) return apply(orig, this, arguments)
+        if (otherwise) return otherwise(this)
+      },
+      writable: false,
+      configurable: false,
+      enumerable: d.enumerable,
+    })
+  }
+  guard(self.HTMLElement && HTMLElement.prototype, 'focus')
+  guard(self.SVGElement && SVGElement.prototype, 'focus')
+  guard(self.MathMLElement && MathMLElement.prototype, 'focus')
+  guard(self, 'focus')
+  guard(self.Window && Window.prototype, 'focus')
+  guard(self.HTMLInputElement && HTMLInputElement.prototype, 'select')
+  guard(self.HTMLTextAreaElement && HTMLTextAreaElement.prototype, 'select')
+  // Not focused: a dialog still opens, without the focusing steps (non-modal).
+  var openDialog = function (d) { apply(setAttr, d, ['open', '']) }
+  guard(self.HTMLDialogElement && HTMLDialogElement.prototype, 'show', openDialog)
+  guard(self.HTMLDialogElement && HTMLDialogElement.prototype, 'showModal', openDialog)
+  guard(self.HTMLElement && HTMLElement.prototype, 'showPopover')
+  guard(self.HTMLElement && HTMLElement.prototype, 'togglePopover')
+
+  // Clipboard. The iframe's allow list and the Permissions-Policy header turn clipboard writes off, but measured:
+  // Chromium still runs document.execCommand('copy') after a click in the output (with the output's own copy handler
+  // choosing the data) and WebKit resolves navigator.clipboard.writeText(). An output must not replace what the reader
+  // has on the clipboard: those calls are refused here, and copy/cut events are not shown to output code (a copy the
+  // reader makes of selected output text still copies that text, as the browser does by default).
+  var notAllowed = function () { return Promise.reject(new DOMException('Clipboard is off in wmn outputs', 'NotAllowedError')) }
+  var CB = self.Clipboard && Clipboard.prototype
+  if (CB) {
+    var cbNames = ['write', 'writeText', 'read', 'readText']
+    for (var c = 0; c < cbNames.length; c++) {
+      if (cbNames[c] in CB) defineProperty(CB, cbNames[c], { value: notAllowed, writable: false, configurable: false, enumerable: true })
+    }
+  }
+  var execCommand = Document.prototype.execCommand
+  if (execCommand) {
+    defineProperty(Document.prototype, 'execCommand', {
+      value: function (cmd) {
+        var name = String(cmd).toLowerCase()
+        if (name === 'copy' || name === 'cut' || name === 'paste') return false
+        return apply(execCommand, this, arguments)
+      },
+      writable: false,
+      configurable: false,
+      enumerable: true,
+    })
+  }
+  on(self, 'copy', function (e) { apply(stopImmediate, e, []) })
+  on(self, 'cut', function (e) { apply(stopImmediate, e, []) })
+
+  var RO = self.ResizeObserver
+  var port = null
+  var rendered = false
+  function send(msg) { if (port) apply(post, port, [msg]) }
+  function height() {
+    var d = document.documentElement, b = document.body
+    return Math.max(d ? d.scrollHeight : 0, b ? b.scrollHeight : 0)
+  }
+  var lastH = -1
+  function reportSize() {
+    var h = height()
+    if (h !== lastH) { lastH = h; send({ t: 'size', h: h }) }
+  }
+  function freshScript(old) {
+    var s = document.createElement('script')
+    for (var i = 0; i < old.attributes.length; i++) s.setAttribute(old.attributes[i].name, old.attributes[i].value)
+    s.text = old.text
+    return s
+  }
+  // Insert the parsed nodes one by one; a <script> is replaced by a fresh element so it runs, and an external one
+  // is awaited before the next node goes in, so inline code after `<script src=lib>` sees the library.
+  function insertInOrder(nodes, parentEl, i, done) {
+    for (; i < nodes.length; i++) {
+      var n = nodes[i]
+      if (n.nodeName === 'SCRIPT') {
+        var s = freshScript(n)
+        if (s.src) {
+          s.onload = s.onerror = function () { insertInOrder(nodes, parentEl, i + 1, done) }
+          parentEl.appendChild(s)
+          return
+        }
+        parentEl.appendChild(s)
+      } else {
+        var inner = n.nodeType === 1 && n.querySelector && n.querySelector('script') ? Array.prototype.slice.call(n.childNodes) : null
+        if (inner) {
+          // An element that contains scripts: insert it empty, then its children in order.
+          var shell = n.cloneNode(false)
+          parentEl.appendChild(shell)
+          insertInOrder(inner, shell, 0, function () { insertInOrder(nodes, parentEl, i + 1, done) })
+          return
+        }
+        parentEl.appendChild(n)
+      }
+    }
+    done()
+  }
+  function render(html) {
+    var range = document.createRange()
+    range.selectNodeContents(document.body)
+    var frag = range.createContextualFragment(html)
+    insertInOrder(Array.prototype.slice.call(frag.childNodes), document.body, 0, function () {
+      if (RO) new RO(reportSize).observe(document.documentElement)
+      reportSize()
+    })
+  }
+  // ---- Library block views (P-E9, D-023) ------------------------------------------------------------------------
+  // A `wmn:use` block's view is one ES module from a pinned package (checked against its sha256 by the app before it
+  // is sent). It runs here like any output: same document, CSP, sandbox, watchdog and CPU account. It is imported from
+  // a blob: URL made in this document (CSP script-src blob:, which adds nothing to what 'unsafe-inline' already
+  // allows), and its default export is called with `api`. The api is the view's only way to the host: each function
+  // sends one message of a fixed type on the port, and the host checks every one (a key the block does not declare,
+  // a value out of range, an unknown block: refused and counted). Values, table data and the theme come in as data.
+  var viewApi = null
+  var viewListeners = { values: [], data: [] }
+  var viewValues = {}
+  var viewData = {}
+  var assetUrls = {}
+  var createObjectURL = URL.createObjectURL
+  var revokeObjectURL = URL.revokeObjectURL
+  var BlobC = self.Blob
+  var freeze = Object.freeze
+  var jsonParse = JSON.parse
+  var jsonStr = JSON.stringify
+  function copy(v) { try { return jsonParse(jsonStr(v === undefined ? null : v)) } catch (x) { return null } }
+  function deliver(kind, arg) {
+    var fns = viewListeners[kind].slice()
+    for (var i = 0; i < fns.length; i++) {
+      (function (fn) { apply(setTimeout_, self, [function () { fn(copy(arg)) }, 0]) })(fns[i])
+    }
+  }
+  var ASSET_TYPES = /^(image\/(svg\+xml|png|jpeg|webp|gif)|text\/(css|plain|csv)|application\/json|font\/woff2)$/
+  function startView(d) {
+    var root = doc.createElement('div')
+    root.id = 'wmn-view'
+    doc.body.appendChild(root)
+    var assets = {}
+    var list = Array.isArray(d.assets) ? d.assets : []
+    for (var i = 0; i < list.length; i++) {
+      var a = list[i]
+      if (a && typeof a.path === 'string' && typeof a.type === 'string' && ASSET_TYPES.test(a.type) && a.bytes instanceof ArrayBuffer) assets[a.path] = a
+    }
+    viewValues = copy(d.values) || {}
+    viewData = copy(d.data) || {}
+    var block = freeze(copy(d.block) || {})
+    viewApi = freeze({
+      root: root,
+      block: block,
+      values: function () { return copy(viewValues) },
+      data: function (name) { return copy(viewData[String(name)]) },
+      dataNames: function () { return Object.keys(viewData) },
+      onValues: function (fn) { if (typeof fn === 'function') viewListeners.values.push(cpuOn ? measured(fn) : fn) },
+      onData: function (fn) { if (typeof fn === 'function') viewListeners.data.push(cpuOn ? measured(fn) : fn) },
+      set: function (key, value) {
+        var v = typeof value === 'number' || typeof value === 'boolean' ? value : String(value).slice(0, 4096)
+        send({ t: 'set', key: String(key).slice(0, 100), value: v })
+      },
+      run: function (id) { send({ t: 'run', block: String(id).slice(0, 100) }) },
+      status: function (text) { send({ t: 'status', text: String(text).slice(0, 2000) }) },
+      done: function (info) { send({ t: 'done', info: copy(info) }) },
+      asset: function (path) {
+        var a = assets[String(path)]
+        if (!a) return null
+        if (!assetUrls[a.path]) {
+          // an SVG asset as a data: URL: an <img> shows it the same, and it is not a URL the view could open as a
+          // document (the app's frame-src allows no data: or blob: navigation)
+          if (a.type === 'image/svg+xml') {
+            var bytes = new Uint8Array(a.bytes), bin = ''
+            for (var i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode.apply(null, Array.prototype.slice.call(bytes.subarray(i, i + 32768)))
+            assetUrls[a.path] = 'data:image/svg+xml;base64,' + btoa(bin)
+          } else assetUrls[a.path] = createObjectURL(new BlobC([a.bytes], { type: a.type }))
+        }
+        return assetUrls[a.path]
+      },
+      assetText: function (path) {
+        var a = assets[String(path)]
+        return a ? new TextDecoder().decode(a.bytes) : null
+      },
+    })
+    var url = createObjectURL(new BlobC([d.code], { type: 'text/javascript' }))
+    import(url).then(function (m) {
+      revokeObjectURL(url)
+      var fn = m && m.default
+      if (typeof fn !== 'function') return send({ t: 'done', info: { error: 'the view module has no default export function' } })
+      ;(cpuOn ? measured(fn) : fn)(viewApi)
+      if (RO) new RO(reportSize).observe(doc.documentElement)
+      reportSize()
+    }, function (e) {
+      revokeObjectURL(url)
+      send({ t: 'done', info: { error: String(e && e.message || e).slice(0, 200) } })
+    })
+  }
+
+  function onPort(e) {
+    var d = e.data
+    if (!d || typeof d !== 'object') return
+    if (d.t === 'ping') send({ t: 'pong', n: d.n, cpu: Math.round(cpuMs) })
+    else if (d.t === 'theme') {
+      var n = typeof d.n === 'number' ? d.n : null
+      var why = themeApi ? themeApi.apply(d) : 'no-theme-runtime'
+      send(why ? { t: 'theme-refused', n: n, why: String(why).slice(0, 80) } : { t: 'themed', n: n })
+    }
+    else if (d.t === 'view' && !rendered && typeof d.code === 'string') {
+      rendered = true
+      if (d.cpu === true) installCpuAccounting()
+      send({ t: 'rendering' })
+      self.__wmnDone = function (info) { send({ t: 'done', info: info === undefined ? null : info }) }
+      startView(d)
+    }
+    else if (d.t === 'values' && viewApi && d.values && typeof d.values === 'object') { viewValues = copy(d.values) || {}; deliver('values', viewValues) }
+    else if (d.t === 'data' && viewApi && typeof d.name === 'string') { viewData[d.name] = { mime: String(d.mime), value: copy(d.value) }; deliver('data', { name: d.name, mime: String(d.mime), value: d.value }) }
+    else if (d.t === 'render' && !rendered && typeof d.html === 'string') {
+      rendered = true
+      if (d.cpu === true) installCpuAccounting()
+      send({ t: 'rendering' })
+      // Renderer templates call this when their chart is drawn; output code may call it too (it is only a signal).
+      self.__wmnDone = function (info) { send({ t: 'done', info: info === undefined ? null : info }) }
+      ;(cpuOn ? measured(render) : render)(d.html)
+    }
+  }
+  function onInit(e) {
+    if (port || (e.source !== parent && e.source !== self) || !e.data || e.data.wmn !== 'init' || !e.ports || e.ports.length !== 1) return
+    removeEventListener('message', onInit)
+    port = e.ports[0]
+    port.onmessage = onPort
+  }
+  addEventListener('message', onInit)
+  parent.postMessage({ wmn: 'ready' }, '*')
+})()
+</script>
+<script>// The driver of a live frame on a published page (ROADMAP 13.11, D-216). It runs in the frame document, after the output frame's own
+// bootstrap (packages/outputs/frame/frame.html, the one the app uses: its locks, its theme runtime, its view api) and does the part
+// the app's host does from outside: it hands the bootstrap a port, sends the theme, the declared values and the tables the page was
+// saved with, checks what the view asks to write back, and (when the page has a script of its own) talks to the page.
+//
+// The document is opaque-origin (the iframe is `sandbox="allow-scripts"`, never allow-same-origin), has no network (CSP connect-src
+// 'none') and carries everything it needs: this script, the bootstrap and the theme runtime are inline and named by hash in the
+// frame's CSP; the view module, the tables and the parameters are data in `<script type="application/json" id="wmn-live-data">`.
+// Nothing here evaluates text: the view module is imported from a blob: URL by the bootstrap, as in the app.
+//
+// Messages with the page (window.postMessage, no secrets in either direction):
+//   frame -> page  {wmn:'live', t:'size', h} | {wmn:'live', t:'run', block, userActive} | {wmn:'live', t:'ready'}
+//   page  -> frame {wmn:'live-in', t:'data', name, mime, value} | {wmn:'live-in', t:'reset'}      (only from the parent window)
+//                  | {wmn:'live-in', t:'param', key, value}    a scrubber of the page that the document bound to a declared parameter (13.12)
+(() => {
+  if (window.origin !== "null") return; // not in a sandbox: nothing runs (live.ts ORIGIN_GUARD does the same before the bootstrap)
+  const nonce = window.__wmnLiveNonce;
+  delete window.__wmnLiveNonce;
+  const doc = document;
+  const parentWin = window.parent;
+  const JSONparse = JSON.parse;
+  const JSONstr = JSON.stringify;
+  const hasOwn = Object.prototype.hasOwnProperty;
+  const holder = doc.getElementById("wmn-live-data");
+  if (!holder) return;
+  let cfg;
+  try {
+    cfg = JSONparse(holder.textContent || "");
+  } catch (x) {
+    return;
+  }
+  if (!cfg || typeof cfg !== "object") return;
+  const original = JSONstr({ values: cfg.values || {}, data: cfg.data || {} });
+
+  function say(text, cls) {
+    let n = doc.getElementById("wmn-live-note");
+    if (!n) {
+      n = doc.createElement("p");
+      n.id = "wmn-live-note";
+      doc.body.appendChild(n);
+    }
+    n.className = cls || "";
+    n.textContent = String(text).slice(0, 400);
+  }
+  function status(text) {
+    let s = doc.getElementById("wmn-live-status");
+    if (!s) {
+      s = doc.createElement("div");
+      s.id = "wmn-live-status";
+      s.setAttribute("role", "status");
+      doc.body.appendChild(s);
+    }
+    s.textContent = String(text).slice(0, 2000);
+  }
+
+  // ---- what a view may write back: a declared parameter, a value that fits it (the same rules as the app's `checkUseSet`)
+  const params = cfg.params && typeof cfg.params === "object" ? cfg.params : {};
+  function check(key, value) {
+    if (typeof key !== "string" || !hasOwn.call(params, key)) return null;
+    const p = params[key];
+    if (!p || typeof p !== "object") return null;
+    if (p.type === "number") {
+      if (typeof value !== "number" || !isFinite(value)) return null;
+      if ((typeof p.min === "number" && value < p.min) || (typeof p.max === "number" && value > p.max)) return null;
+      return { v: value };
+    }
+    if (p.type === "select")
+      return typeof value === "string" && Array.isArray(p.options) && p.options.indexOf(value) >= 0
+        ? { v: value }
+        : null;
+    if (p.type === "boolean") return typeof value === "boolean" ? { v: value } : null;
+    if (p.type === "text")
+      return typeof value === "string" && value.length <= (typeof p.maxLength === "number" ? p.maxLength : 0)
+        ? { v: value }
+        : null;
+    return null;
+  }
+  let values = JSONparse(JSONstr(cfg.values || {}));
+  let refused = 0;
+  const setTimes = [];
+
+  // ---- the port to the bootstrap
+  const channel = new MessageChannel();
+  const core = channel.port2;
+  let themeN = 0;
+  let lastInput = 0;
+  const dark = typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: dark)") : null;
+  function sendTheme() {
+    const name = dark && dark.matches ? "dark" : "light";
+    const vars = cfg.theme && cfg.theme[name];
+    if (vars) core.postMessage({ t: "theme", theme: name, vars: vars, n: ++themeN });
+  }
+  function toPage(msg) {
+    msg.wmn = "live";
+    msg.nonce = nonce;
+    try {
+      parentWin.postMessage(msg, "*");
+    } catch (x) {}
+  }
+  core.onmessage = (e) => {
+    const m = e.data;
+    if (!m || typeof m !== "object") return;
+    if (m.t === "size") toPage({ t: "size", h: m.h });
+    else if (m.t === "input") lastInput = Date.now();
+    else if (m.t === "status" && typeof m.text === "string") status(m.text);
+    else if (m.t === "done") {
+      const info = m.info;
+      if (info && typeof info === "object" && typeof info.error === "string")
+        say("This view could not start: " + info.error, "wmn-live-error");
+    } else if (m.t === "set") {
+      const now = Date.now();
+      while (setTimes.length && now - setTimes[0] >= 1000) setTimes.shift();
+      const ok = setTimes.length < 20 ? check(m.key, m.value) : null;
+      if (!ok) {
+        refused++;
+        holder.setAttribute("data-refused", String(refused));
+        return;
+      }
+      setTimes.push(now);
+      values[m.key] = ok.v;
+      core.postMessage({ t: "values", values: values });
+    } else if (m.t === "run" && typeof m.block === "string") {
+      const fed = Array.isArray(cfg.fed) ? cfg.fed : [];
+      if (fed.indexOf(m.block) >= 0) toPage({ t: "run", block: m.block, userActive: Date.now() - lastInput < 3000 });
+    }
+  };
+
+  function assets() {
+    const out = [];
+    const list = Array.isArray(cfg.assets) ? cfg.assets : [];
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i];
+      if (!a || typeof a.b64 !== "string") continue;
+      try {
+        const bin = atob(a.b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+        out.push({ path: a.path, type: a.type, bytes: bytes.buffer });
+      } catch (x) {}
+    }
+    return out;
+  }
+
+  window.postMessage({ wmn: "init" }, "*", [channel.port1]);
+  sendTheme();
+  if (dark && dark.addEventListener) dark.addEventListener("change", sendTheme);
+  core.postMessage({
+    t: "view",
+    code: String(cfg.code || ""),
+    assets: assets(),
+    block: cfg.block || {},
+    values: values,
+    data: cfg.data || {},
+  });
+
+  // ---- the page (when it has a script): tables from runs in the reader's browser, and a way back to the saved ones
+  const fedNames = Array.isArray(cfg.fed) ? cfg.fed : [];
+  const bound = Array.isArray(cfg.bound) ? cfg.bound : [];
+  const accepts = Array.isArray(cfg.accepts) ? cfg.accepts : [];
+  window.addEventListener("message", (e) => {
+    if (e.source !== parentWin) return;
+    const d = e.data;
+    if (!d || typeof d !== "object" || d.wmn !== "live-in") return;
+    if (d.t === "data" && typeof d.name === "string" && typeof d.mime === "string") {
+      if (fedNames.indexOf(d.name) < 0 || accepts.indexOf(d.mime) < 0) return;
+      core.postMessage({ t: "data", name: d.name, mime: d.mime, value: d.value });
+    } else if (d.t === "param" && typeof d.key === "string") {
+      // a scrubber the document bound (`uses=` and a declared parameter of that name): the same check as a write by the view (declared,
+      // typed, in range, an option, within the length); a name that is not bound, or a value that does not fit, changes nothing
+      // (a drag is many values: at most twenty a second, the limit a write by the view has)
+      const now = Date.now();
+      while (setTimes.length && now - setTimes[0] >= 1000) setTimes.shift();
+      const ok = bound.indexOf(d.key) >= 0 && setTimes.length < 20 ? check(d.key, d.value) : null;
+      if (ok) setTimes.push(now);
+      if (!ok) {
+        refused++;
+        holder.setAttribute("data-refused", String(refused));
+        return;
+      }
+      values[d.key] = ok.v;
+      core.postMessage({ t: "values", values: values });
+    } else if (d.t === "reset") {
+      const o = JSONparse(original);
+      values = o.values;
+      core.postMessage({ t: "values", values: values });
+      for (const name in o.data)
+        if (hasOwn.call(o.data, name))
+          core.postMessage({ t: "data", name: name, mime: o.data[name].mime, value: o.data[name].value });
+    }
+  });
+  toPage({ t: "ready" });
+})();
+</script>
+</body>
+</html>

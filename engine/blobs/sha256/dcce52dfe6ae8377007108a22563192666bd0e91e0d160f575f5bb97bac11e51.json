@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "image": "alpine",
+  "entries": [
+    {
+      "file": "0b17c46d3719b91815a87cfb6a7a00fc991b099e8cb669ed11a9f87589bee329.wmdbase",
+      "image": "alpine",
+      "ref": "docker.io/library/alpine:3.20",
+      "vmKey": "4f7cf72269e2deaab6c987b8c2d25b5f7f31b6a9b8f45af34474175a470954f4",
+      "bootKey": "5f84f33b05a798a9c074194d47a29cbb60340a619f9e51f826a1624cbea74f04",
+      "headerSha256": "b98819db96747c6fa9ad58a1b589d2db411b8805faeed9ce3e64e4d89610888e",
+      "bytes": 60859640,
+      "sha256": "0b17c46d3719b91815a87cfb6a7a00fc991b099e8cb669ed11a9f87589bee329",
+      "codec": "gzip",
+      "level": 6,
+      "createdAt": "2026-10-14T21:47:46.092Z",
+      "rawBytes": 315251609,
+      "machine": {
+        "cpus": 1,
+        "ramMiB": 1024,
+        "slackMiB": 1024
+      },
+      "inputs": {
+        "vmSha256": "4f7cf72269e2deaab6c987b8c2d25b5f7f31b6a9b8f45af34474175a470954f4",
+        "kernelSha256": "ecd94b5ea5e4deb8369fa9d55beb7a0b9ee0dfcca7b6d75e33a85ab484d55c4d",
+        "initrdSha256": "c036dd01b5d68479cd1f67b103941508d3817ea1addafc8586c2bd97f25d589d",
+        "agentSha256": "b7911adcb9142bb90ea1f42f6d745d9861df8edd6cb18c168d3fcddc09cdf7ad",
+        "image": {
+          "ref": "docker.io/library/alpine:3.20",
+          "imageJsonSha256": "e37344380613fced5d9f0a46b2c86257108e485882870f7e2eb16cffe4a8483b",
+          "layers": [
+            "8fa5de60bc39c0f1cb0cc108e50962134925f74c8643463e467572eac3038854"
+          ]
+        },
+        "wmdWeb": "26da6428b7a011de5294d2c32d695eec8c7c9763",
+        "machine": {
+          "cpus": 1,
+          "ramMiB": 1024,
+          "slackMiB": 1024
+        }
+      }
+    }
+  ]
+}

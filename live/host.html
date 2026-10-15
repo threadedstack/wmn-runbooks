@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; script-src &#39;sha256-inR44aiyaONPZrthXFqZBpRMNet3/z/ayj10gxGZUMo=&#39; &#39;sha256-ypV9phwNDpIXBkVUg4cWYqnvFBiojl5W2AijtLrVqjQ=&#39; &#39;sha256-lJtkH4vyH3qzttUXTHQuH6bjE/XBzeDYoUCNlnLRxRE=&#39; &#39;sha256-u+cD8WXbzfqGD6f+nl8M73wPhKwwJ976n5vYLpMxn5s=&#39; blob:; style-src &#39;unsafe-inline&#39;; img-src data: blob:; font-src data:; media-src data: blob:; connect-src &#39;self&#39;; worker-src &#39;none&#39;; object-src &#39;none&#39;; manifest-src &#39;none&#39;; form-action &#39;none&#39;; base-uri &#39;none&#39;">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Live view</title>
+<style>html{color-scheme:light dark}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,sans-serif;color:CanvasText;background:transparent}
+iframe{display:block;border:0;width:100%;height:100%}
+.wmn-live-error{margin:0;padding:0.5rem;border:1px solid currentColor;border-radius:0.5rem}
+.wmn-live-fallback{margin:0;padding:0.5rem;font-size:0.9rem}
+.wmn-live-fallback img{display:block;max-width:100%;height:auto;margin:0 0 0.5rem}
+.wmn-live-fallback p{margin:0 0 0.25rem}
+</style>
+</head>
+<body>
+<div id="wmn-live-host" role="group" aria-label="Live view"></div>
+<noscript><p class="wmn-live-error">This live view needs JavaScript.</p></noscript>
+<script>(() => {
+  const doc = document;
+  const out = doc.getElementById("wmn-live-host");
+  const hash = /^#([0-9a-f]{20})$/.exec(location.hash);
+  let inner = null;
+  let started = false;
+  let failed = false;
+  let preview = null;
+  function fail(why) {
+    if (failed) return;
+    failed = true;
+    if (inner) inner.remove();
+    inner = null;
+    const p = doc.createElement("p");
+    p.className = "wmn-live-error";
+    p.textContent = "This live view could not be shown: " + why + ".";
+    out.appendChild(p);
+    if (preview) out.appendChild(preview);
+  }
+  // only a page of this site may frame the host: a meta policy cannot say frame-ancestors and a static host sends no header, so a page of
+  // another origin could otherwise drive the view and read what it says. Refused before anything is fetched or built.
+  let ours = false;
+  try {
+    ours = parent !== self && parent.location.origin === location.origin;
+  } catch (x) {}
+  if (!ours) return fail("it is not shown by a page of the site");
+  if (!hash) return fail("its address is not one of this site's frames");
+  // the view takes a while on a busy machine; a frame that never said it started is replaced by its preview and the reason
+  setTimeout(() => {
+    if (!started) fail("it did not start in this browser");
+  }, 15000);
+  fetch(hash[1] + ".html", { credentials: "omit", referrerPolicy: "no-referrer" })
+    .then((r) => {
+      if (!r.ok) throw new Error("status");
+      return r.text();
+    })
+    .then((html) => {
+      const parsed = new DOMParser().parseFromString(html, "text/html");
+      const fb = parsed.querySelector(".wmn-live-fallback");
+      if (fb) preview = doc.importNode(fb, true);
+      if (failed) return;
+      const f = doc.createElement("iframe");
+      f.setAttribute("sandbox", "allow-scripts");
+      f.setAttribute("title", parsed.title || "Live view");
+      f.setAttribute("referrerpolicy", "no-referrer");
+      f.srcdoc = html;
+      inner = f;
+      out.appendChild(f);
+    })
+    .catch(() => fail("its file could not be loaded"));
+  addEventListener("message", (e) => {
+    const d = e.data;
+    if (!d || typeof d !== "object") return;
+    if (e.source === parent) {
+      // the page to the frame (the frame accepts only its parent, which is this document)
+      if (d.wmn === "live-in" && inner && inner.contentWindow) inner.contentWindow.postMessage(d, "*");
+    } else if (
+      d.wmn === "live" &&
+      ((inner && e.source === inner.contentWindow) || (e.source === null && d.t === "leaving"))
+    ) {
+      // the frame to the page; a frame being unloaded is named by no source, and its nonce is what the page matches (live-frame.js, run/live.ts)
+      if (d.t === "ready") started = true;
+      try {
+        parent.postMessage(d, location.origin);
+      } catch (x) {}
+    }
+  });
+})();
+</script>
+</body>
+</html>

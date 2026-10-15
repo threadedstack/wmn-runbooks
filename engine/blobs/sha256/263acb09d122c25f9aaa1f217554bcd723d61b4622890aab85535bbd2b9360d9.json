@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "image": "python",
+  "entries": [
+    {
+      "file": "e1289676c65d1b0a58aa1d0661f68fa46888efb5b247da844cc49749b01f561d.wmdbase",
+      "image": "python",
+      "ref": "docker.io/library/python:3.12-slim",
+      "vmKey": "4f7cf72269e2deaab6c987b8c2d25b5f7f31b6a9b8f45af34474175a470954f4",
+      "bootKey": "989dffdacc692b505e510e4733f9622e4fa7036d417d3f92bc12834d5444fd9a",
+      "headerSha256": "60c533887ae79709467a6e15bd27d1030266f7a0587bd8cacf30feabee256368",
+      "bytes": 61794910,
+      "sha256": "e1289676c65d1b0a58aa1d0661f68fa46888efb5b247da844cc49749b01f561d",
+      "codec": "gzip",
+      "level": 6,
+      "createdAt": "2026-10-14T21:47:46.748Z",
+      "rawBytes": 321230926,
+      "machine": {
+        "cpus": 1,
+        "ramMiB": 1024,
+        "slackMiB": 1024
+      },
+      "inputs": {
+        "vmSha256": "4f7cf72269e2deaab6c987b8c2d25b5f7f31b6a9b8f45af34474175a470954f4",
+        "kernelSha256": "ecd94b5ea5e4deb8369fa9d55beb7a0b9ee0dfcca7b6d75e33a85ab484d55c4d",
+        "initrdSha256": "c036dd01b5d68479cd1f67b103941508d3817ea1addafc8586c2bd97f25d589d",
+        "agentSha256": "b7911adcb9142bb90ea1f42f6d745d9861df8edd6cb18c168d3fcddc09cdf7ad",
+        "image": {
+          "ref": "docker.io/library/python:3.12-slim",
+          "imageJsonSha256": "8d6944533afb37961ca1d11b4c53506615fe9e1aeef7a19ee58999e8f246fc36",
+          "layers": [
+            "98bb1e8c0005c66ddc46db5bbd2098532b854d92d5d58c8149421c081d151873",
+            "2f89829108ccc32e7402bca72a7e002980f8eccbca6a5897f91a5ed7805a2c84",
+            "237b22f5b5540dde195031d3ab964db2044aa66a09dcbb96639f3bdc55a1c89b",
+            "742f9faccb8cb681ee2a5bd58a2c030f1154f4fc2d3c9c8a4fb26dd4dd66084e"
+          ]
+        },
+        "wmdWeb": "26da6428b7a011de5294d2c32d695eec8c7c9763",
+        "machine": {
+          "cpus": 1,
+          "ramMiB": 1024,
+          "slackMiB": 1024
+        }
+      }
+    }
+  ]
+}

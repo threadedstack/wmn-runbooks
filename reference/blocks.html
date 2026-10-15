@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;self&#39;; img-src &#39;self&#39; data:; font-src &#39;self&#39;; base-uri &#39;none&#39;; form-action &#39;self&#39;">
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="wmn publish">
+<title>Blocks | wmn runbooks</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/wmn-runbooks/assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><input type="checkbox" id="nav-toggle" class="toggle"><label for="nav-toggle" class="menu-btn"><span class="wmn-icon i-menu_book" aria-hidden="true"></span><span class="sr">Menu</span></label><a class="site-title" href="/wmn-runbooks/index.html"><span class="brand-name">wmn runbooks</span><span class="brand-dot" aria-hidden="true"></span></a><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb"><span class="crumb-dir">reference</span><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb-file">blocks.wmn.md</span></span><span class="head-end"><form class="site-search" role="search" action="/wmn-runbooks/search.html" method="get"><label for="site-q">Search this site</label><input id="site-q" type="search" name="q" autocomplete="off" enterkeyhint="search" placeholder="Search"><button type="submit">Search</button></form></span></header>
+<div class="layout">
+<div class="rail">
+<aside class="outline" aria-label="On this page" data-pagefind-ignore><input type="checkbox" id="outline-toggle" class="toggle"><label for="outline-toggle" class="outline-btn">On this page</label><div class="outline-body"><h2>On this page</h2><ul><li><a class="l2" href="#code">Code</a></li><li><a class="l2" href="#input">Input</a></li><li><a class="l2" href="#chart">Chart</a></li><li><a class="l2" href="#callout">Callout</a></li><li><a class="l2" href="#tabs">Tabs</a></li><li><a class="l2" href="#embed">Embed</a></li><li><a class="l2" href="#library-blocks">Library blocks</a></li><li><a class="l3" href="#feeding-a-view">Feeding a view</a></li><li><a class="l3" href="#the-bundled-packages">The bundled packages</a></li><li><a class="l2" href="#scrubbers">Scrubbers</a></li></ul></div></aside><nav class="site-nav" aria-label="Site" data-pagefind-ignore><p class="rail-label">Pages</p><ul><li><a href="/wmn-runbooks/index.html">wmn runbooks</a></li></ul><ul><li><a href="/wmn-runbooks/README.html">wmn-runbooks</a></li><li><a href="/wmn-runbooks/getting-started.html">Getting started</a></li><li><details open><summary>reference</summary><ul><li><a href="/wmn-runbooks/reference/blocks.html" aria-current="page">Blocks</a></li><li><a href="/wmn-runbooks/reference/format.html">The document format</a></li></ul></details></li><li><details open><summary>runbooks</summary><ul><li><a href="/wmn-runbooks/runbooks/files-and-permissions.html">Files and permissions</a></li><li><a href="/wmn-runbooks/runbooks/inspect-a-machine.html">Inspect a machine</a></li><li><a href="/wmn-runbooks/runbooks/python-data.html">Python data</a></li><li><a href="/wmn-runbooks/runbooks/text-processing.html">Text processing</a></li></ul></details></li></ul></nav>
+</div>
+<main id="main"><article data-pagefind-body>
+<h1 id="blocks">Blocks<a class="anchor" href="#blocks" aria-label="Link to this section">#</a></h1>
+<p>Besides code, a wmn document can hold a small set of rich blocks. Each is a fenced block whose language starts with <code>wmn:</code>, so it stays readable as text in any Markdown viewer. The body is usually <code>key: value</code> lines, one per line.</p>
+<h2 id="code">Code<a class="anchor" href="#code" aria-label="Link to this section">#</a></h2>
+<p>A fenced block with a language and optional attributes, as described in <a href="/wmn-runbooks/reference/format.html">The document format</a>. On a runnable page a block the machine can run gets a <strong>Run</strong> button; the first Run on a page starts the machine, and later Runs reuse it.</p>
+<h2 id="input">Input<a class="anchor" href="#input" aria-label="Link to this section">#</a></h2>
+<p>A control whose value the blocks that use it can read.</p>
+<section class="block"><div class="block-head"><span class="block-lang">markdown</span></div><pre class="code"><code class="language-markdown">```wmn:input {#count}
+name: count
+type: slider
+min: 0
+max: 100
+value: 42
+```</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<p><code>type</code> is one of <code>text</code>, <code>number</code>, <code>slider</code>, <code>select</code>, <code>date</code> or <code>file</code>. Other keys are <code>label</code>, <code>step</code>, <code>options</code> and <code>accept</code>. A code block reads the value with <code>uses=count</code>, as the variable <code>count</code>.</p>
+<h2 id="chart">Chart<a class="anchor" href="#chart" aria-label="Link to this section">#</a></h2>
+<p>A chart of a table that a code block produced.</p>
+<section class="block"><div class="block-head"><span class="block-lang">markdown</span></div><pre class="code"><code class="language-markdown">```wmn:chart {#sales-chart}
+source: sales
+type: bar
+x: month
+y: total
+title: Sales by month
+```</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<p><code>source</code> is the id of the block whose output is a table.</p>
+<h2 id="callout">Callout<a class="anchor" href="#callout" aria-label="Link to this section">#</a></h2>
+<p>A note that stands out. The body is Markdown and <code>kind=</code> is <code>note</code>, <code>tip</code>, <code>important</code>, <code>warning</code> or <code>caution</code>.</p>
+<section class="block"><div class="block-head"><span class="block-lang">markdown</span></div><pre class="code"><code class="language-markdown">```wmn:callout {kind=warning}
+This **overwrites** the table.
+```</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<h2 id="tabs">Tabs<a class="anchor" href="#tabs" aria-label="Link to this section">#</a></h2>
+<p>Show one of several blocks at a time. Each entry names a block by id; the blocks follow the tabs block in the document.</p>
+<section class="block"><div class="block-head"><span class="block-lang">markdown</span></div><pre class="code"><code class="language-markdown">```wmn:tabs
+- { label: SQL, block: create-table }
+- { label: Python, block: load }
+```</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<h2 id="embed">Embed<a class="anchor" href="#embed" aria-label="Link to this section">#</a></h2>
+<p>A web page inside the document, with <code>src=</code> and <code>height=</code> attributes. Some tools show it as plain code rather than drawing the page.</p>
+<h2 id="library-blocks">Library blocks<a class="anchor" href="#library-blocks" aria-label="Link to this section">#</a></h2>
+<p>A <code>wmn:use</code> block draws with a view from a block package. The front matter pins the package, and the block names it and the block to use:</p>
+<section class="block"><div class="block-head"><span class="block-lang">markdown</span></div><pre class="code"><code class="language-markdown">---
+blocks:
+  charts:
+    from: stdlib/charts
+    version: &quot;1.0.0&quot;
+    sha256: &lt;the package hash&gt;
+---
+
+```wmn:use {#trend lib=charts block=line-chart}
+source: temperature
+x: hour
+y: temperature
+```</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<ul>
+<li><code>lib=</code> is the name pinned under <code>blocks:</code>, and <code>block=</code> is a block of that package.</li>
+<li><code>source:</code> names the block (or blocks, comma separated) that prints the table the view draws. <code>uses=</code> can name more.</li>
+<li>The other lines are the view&#39;s parameters. A view cannot change <code>source</code> or the pin.</li>
+<li>A package and its views are plain files. The view runs in a sandboxed frame that cannot read the page, use storage, or reach the network. It is sent only its parameters, the theme and the tables it was fed from.</li>
+</ul>
+<h3 id="feeding-a-view">Feeding a view<a class="anchor" href="#feeding-a-view" aria-label="Link to this section">#</a></h3>
+<p>The block named by <code>source:</code> prints a table, which a Python block can do with:</p>
+<section class="block"><div class="block-head"><span class="block-lang">markdown</span></div><pre class="code"><code class="language-markdown">```python {#temperature}
+display({&quot;application/vnd.wmn.table+json&quot;: {&quot;columns&quot;: [&quot;hour&quot;, &quot;temperature&quot;], &quot;rows&quot;: [[0, 18.0], [2, 17.4]]}}, raw=True)
+```</code></pre><p class="run-note" data-wmn-run="no" data-pagefind-ignore>Not runnable: this document names no image (`image:` in its front matter), so there is nothing to run its code on.</p></section>
+<p>The page draws the view from the table saved with the page. After you press Run the view redraws from the table the machine printed.</p>
+<h3 id="the-bundled-packages">The bundled packages<a class="anchor" href="#the-bundled-packages" aria-label="Link to this section">#</a></h3>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th>Package</th><th>Blocks</th></tr></thead><tbody><tr><td><code>stdlib/charts</code></td><td><strong>Line chart</strong> (<code>line-chart</code>), <strong>Bar chart</strong> (<code>bar-chart</code>), <strong>Scatter plot</strong> (<code>scatter-plot</code>), <strong>Histogram and CDF</strong> (<code>histogram</code>). Parameters include <code>x</code>, <code>y</code>, <code>title</code> (and <code>column</code>, <code>bins</code> for the histogram).</td></tr><tr><td><code>stdlib/explore</code></td><td><strong>Metric table</strong> (<code>metric-table</code>: totals for each column, with the changes between runs highlighted), <strong>Network graph</strong> (<code>network-graph</code>: a table of pairs drawn as nodes and edges), and the scrubbable number.</td></tr><tr><td><code>stdlib/data</code></td><td>Templates for loading a file and for an SQL query.</td></tr><tr><td><code>stdlib/core</code></td><td>The input, chart, callout, tabs, embed and code blocks above.</td></tr></tbody></table></div>
+<h2 id="scrubbers">Scrubbers<a class="anchor" href="#scrubbers" aria-label="Link to this section">#</a></h2>
+<p>A number inside a sentence that you can drag. See <a href="/wmn-runbooks/reference/format.html#scrubbers">The document format</a>. Moving a scrubber re-runs the blocks that name it in <code>uses=</code>, and a live view fed from them redraws.</p>
+<nav class="pager" aria-label="Pages" data-pagefind-ignore><a class="prev" rel="prev" href="/wmn-runbooks/getting-started.html"><span class="dir">Previous</span>Getting started</a><a class="next" rel="next" href="/wmn-runbooks/reference/format.html"><span class="dir">Next</span>The document format</a></nav>
+</article></main>
+</div>
+<footer class="site-footer"><span class="sf-brand"><span class="brand-dot" aria-hidden="true"></span>Published with wmn</span><span class="sf-info">6 code blocks</span></footer>
+</body>
+</html>

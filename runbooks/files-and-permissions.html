@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;self&#39;; img-src &#39;self&#39; data:; font-src &#39;self&#39;; script-src &#39;self&#39; &#39;wasm-unsafe-eval&#39;; connect-src &#39;self&#39;; worker-src &#39;self&#39;; base-uri &#39;none&#39;; form-action &#39;self&#39;">
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="wmn publish">
+<title>Files and permissions | wmn runbooks</title>
+<link rel="icon" href="data:,">
+<script src="/wmn-runbooks/coi-config.js"></script><script src="/wmn-runbooks/coi-serviceworker.js"></script>
+<link rel="stylesheet" href="/wmn-runbooks/assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><input type="checkbox" id="nav-toggle" class="toggle"><label for="nav-toggle" class="menu-btn"><span class="wmn-icon i-menu_book" aria-hidden="true"></span><span class="sr">Menu</span></label><a class="site-title" href="/wmn-runbooks/index.html"><span class="brand-name">wmn runbooks</span><span class="brand-dot" aria-hidden="true"></span></a><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb"><span class="crumb-dir">runbooks</span><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb-file">files-and-permissions.wmn.md</span></span><span class="head-end"><form class="site-search" role="search" action="/wmn-runbooks/search.html" method="get"><label for="site-q">Search this site</label><input id="site-q" type="search" name="q" autocomplete="off" enterkeyhint="search" placeholder="Search"><button type="submit">Search</button></form><span class="env-pill" data-pagefind-ignore title="The machine this page runs its code on, in your browser"><span class="env-dot" aria-hidden="true"></span>alpine:3.20</span><button type="button" class="head-run" data-wmn-runall data-pagefind-ignore aria-label="Run all blocks" hidden><span class="wmn-icon i-play_circle" aria-hidden="true"></span><span class="head-run-text">Run all</span></button></span></header>
+<div class="layout">
+<div class="rail">
+<aside class="outline" aria-label="On this page" data-pagefind-ignore><input type="checkbox" id="outline-toggle" class="toggle"><label for="outline-toggle" class="outline-btn">On this page</label><div class="outline-body"><h2>On this page</h2><ul><li><a class="l2" href="#make-a-small-tree">Make a small tree</a></li><li><a class="l2" href="#read-a-file">Read a file</a></li><li><a class="l2" href="#change-modes">Change modes</a></li><li><a class="l2" href="#find-files">Find files</a></li><li><a class="l2" href="#count-and-compare">Count and compare</a></li><li><a class="l2" href="#clean-up">Clean up</a></li></ul></div></aside><nav class="site-nav" aria-label="Site" data-pagefind-ignore><p class="rail-label">Pages</p><ul><li><a href="/wmn-runbooks/index.html">wmn runbooks</a></li></ul><ul><li><a href="/wmn-runbooks/README.html">wmn-runbooks</a></li><li><a href="/wmn-runbooks/getting-started.html">Getting started</a></li><li><details open><summary>reference</summary><ul><li><a href="/wmn-runbooks/reference/blocks.html">Blocks</a></li><li><a href="/wmn-runbooks/reference/format.html">The document format</a></li></ul></details></li><li><details open><summary>runbooks</summary><ul><li><a href="/wmn-runbooks/runbooks/files-and-permissions.html" aria-current="page">Files and permissions</a></li><li><a href="/wmn-runbooks/runbooks/inspect-a-machine.html">Inspect a machine</a></li><li><a href="/wmn-runbooks/runbooks/python-data.html">Python data</a></li><li><a href="/wmn-runbooks/runbooks/text-processing.html">Text processing</a></li></ul></details></li></ul></nav>
+</div>
+<main id="main"><article data-pagefind-body>
+<div class="run-strip" data-pagefind-ignore><p class="run-status" id="wmn-run-status" role="status" aria-live="polite" data-engine="/wmn-runbooks/engine/" data-set="/wmn-runbooks/engine/sets/site.json" data-snapshot="auto" data-worker="/wmn-runbooks/assets/run/worker.js" data-image="alpine:3.20">The blocks marked Run on this page can run in your browser: the first one downloads and starts a small machine, with no network. That needs JavaScript. Without it you read the output saved with the document.</p><span class="run-chip">No network</span></div><section class="startup" aria-label="Starting the machine" data-wmn-startup hidden></section>
+<h1 id="files-and-permissions">Files and permissions<a class="anchor" href="#files-and-permissions" aria-label="Link to this section">#</a></h1>
+<p>Create files, change who can do what with them, find them again and read them back. Every block uses full paths, so you can run any block on its own, but the later blocks expect the files made by the first one.</p>
+<h2 id="make-a-small-tree">Make a small tree<a class="anchor" href="#make-a-small-tree" aria-label="Link to this section">#</a></h2>
+<section class="block" id="block-make" data-wmn-run="sh" data-wmn-session="default" data-wmn-block="make"><div class="block-head"><span class="block-lang">sh</span><span class="block-id">#make</span><div class="run-bar" data-wmn-bar data-pagefind-ignore hidden><button type="button" class="run-btn" data-wmn-btn><span class="wmn-icon i-play_arrow" aria-hidden="true"></span><span class="run-btn-text">Run</span></button><span class="run-state" data-wmn-state>Not run</span></div></div><pre class="code"><code class="language-sh">rm -rf /tmp/demo
+mkdir -p /tmp/demo/notes /tmp/demo/bin
+printf <span class="tk-string">&#39;hello from wmn\n&#39;</span> &gt; /tmp/demo/hello.txt
+printf <span class="tk-string">&#39;one\ntwo\nthree\n&#39;</span> &gt; /tmp/demo/notes/list.txt
+printf <span class="tk-string">&#39;#!/bin/sh\necho &quot;the script ran&quot;\n&#39;</span> &gt; /tmp/demo/bin/run.sh
+ls -lR /tmp/demo</code></pre><div class="run-live" data-wmn-live hidden></div></section>
+<p>New files are not executable. Look at the first column of <code>ls -l</code>: the letters are read, write and execute for the owner, the group and everyone else.</p>
+<h2 id="read-a-file">Read a file<a class="anchor" href="#read-a-file" aria-label="Link to this section">#</a></h2>
+<section class="block" id="block-read" data-wmn-run="sh" data-wmn-session="default" data-wmn-block="read" data-wmn-uses="make"><div class="block-head"><span class="block-lang">sh</span><span class="block-id">#read</span><div class="run-bar" data-wmn-bar data-pagefind-ignore hidden><button type="button" class="run-btn" data-wmn-btn><span class="wmn-icon i-play_arrow" aria-hidden="true"></span><span class="run-btn-text">Run</span></button><span class="run-state" data-wmn-state>Not run</span></div></div><pre class="code"><code class="language-sh">cat /tmp/demo/hello.txt
+echo <span class="tk-string">&quot;--- a longer one&quot;</span>
+cat /tmp/demo/notes/list.txt
+echo <span class="tk-string">&quot;--- a system file&quot;</span>
+cat /etc/os-release</code></pre><div class="run-live" data-wmn-live hidden></div></section>
+<h2 id="change-modes">Change modes<a class="anchor" href="#change-modes" aria-label="Link to this section">#</a></h2>
+<section class="block" id="block-chmod" data-wmn-run="sh" data-wmn-session="default" data-wmn-block="chmod" data-wmn-uses="make"><div class="block-head"><span class="block-lang">sh</span><span class="block-id">#chmod</span><div class="run-bar" data-wmn-bar data-pagefind-ignore hidden><button type="button" class="run-btn" data-wmn-btn><span class="wmn-icon i-play_arrow" aria-hidden="true"></span><span class="run-btn-text">Run</span></button><span class="run-state" data-wmn-state>Not run</span></div></div><pre class="code"><code class="language-sh">/tmp/demo/bin/run.sh || echo <span class="tk-string">&quot;not allowed yet (exit </span>$?<span class="tk-string">)&quot;</span>
+chmod u+x /tmp/demo/bin/run.sh
+/tmp/demo/bin/run.sh
+chmod <span class="tk-number">600</span> /tmp/demo/hello.txt
+chmod <span class="tk-number">755</span> /tmp/demo/notes
+stat -c <span class="tk-string">&#39;%a %A %n&#39;</span> /tmp/demo/hello.txt /tmp/demo/notes /tmp/demo/bin/run.sh</code></pre><div class="run-live" data-wmn-live hidden></div></section>
+<p>A mode can be symbolic (<code>u+x</code>: add execute for the owner) or octal (<code>600</code>: read and write for the owner only). In octal each digit adds read (4), write (2) and execute (1) for owner, group and others.</p>
+<h2 id="find-files">Find files<a class="anchor" href="#find-files" aria-label="Link to this section">#</a></h2>
+<section class="block" id="block-find" data-wmn-run="sh" data-wmn-session="default" data-wmn-block="find" data-wmn-uses="make"><div class="block-head"><span class="block-lang">sh</span><span class="block-id">#find</span><div class="run-bar" data-wmn-bar data-pagefind-ignore hidden><button type="button" class="run-btn" data-wmn-btn><span class="wmn-icon i-play_arrow" aria-hidden="true"></span><span class="run-btn-text">Run</span></button><span class="run-state" data-wmn-state>Not run</span></div></div><pre class="code"><code class="language-sh">echo <span class="tk-string">&quot;text files:&quot;</span>
+find /tmp/demo -type f -name <span class="tk-string">&#39;*.txt&#39;</span>
+echo <span class="tk-string">&quot;executable files:&quot;</span>
+find /tmp/demo -type f -perm -u+x
+echo <span class="tk-string">&quot;directories:&quot;</span>
+find /tmp/demo -type d</code></pre><div class="run-live" data-wmn-live hidden></div></section>
+<h2 id="count-and-compare">Count and compare<a class="anchor" href="#count-and-compare" aria-label="Link to this section">#</a></h2>
+<section class="block" id="block-count" data-wmn-run="sh" data-wmn-session="default" data-wmn-block="count" data-wmn-uses="make"><div class="block-head"><span class="block-lang">sh</span><span class="block-id">#count</span><div class="run-bar" data-wmn-bar data-pagefind-ignore hidden><button type="button" class="run-btn" data-wmn-btn><span class="wmn-icon i-play_arrow" aria-hidden="true"></span><span class="run-btn-text">Run</span></button><span class="run-state" data-wmn-state>Not run</span></div></div><pre class="code"><code class="language-sh">wc -l /tmp/demo/notes/list.txt
+du -sk /tmp/demo
+cp /tmp/demo/notes/list.txt /tmp/demo/notes/copy.txt
+cmp /tmp/demo/notes/list.txt /tmp/demo/notes/copy.txt &amp;&amp; echo <span class="tk-string">&quot;identical&quot;</span></code></pre><div class="run-live" data-wmn-live hidden></div></section>
+<h2 id="clean-up">Clean up<a class="anchor" href="#clean-up" aria-label="Link to this section">#</a></h2>
+<section class="block" id="block-cleanup" data-wmn-run="sh" data-wmn-session="default" data-wmn-block="cleanup"><div class="block-head"><span class="block-lang">sh</span><span class="block-id">#cleanup</span><div class="run-bar" data-wmn-bar data-pagefind-ignore hidden><button type="button" class="run-btn" data-wmn-btn><span class="wmn-icon i-play_arrow" aria-hidden="true"></span><span class="run-btn-text">Run</span></button><span class="run-state" data-wmn-state>Not run</span></div></div><pre class="code"><code class="language-sh">rm -rf /tmp/demo
+ls /tmp</code></pre><div class="run-live" data-wmn-live hidden></div></section>
+<div class="run-dock" data-wmn-dock data-pagefind-ignore hidden><button type="button" class="dock-run" data-wmn-runall><span class="wmn-icon i-play_arrow" aria-hidden="true"></span><span>Run all blocks</span></button><button type="button" class="dock-btn" data-wmn-reset aria-label="Reset: stop the machine, clear the live output and put every control back to the saved value"><span class="wmn-icon i-restart_alt" aria-hidden="true"></span></button></div><nav class="pager" aria-label="Pages" data-pagefind-ignore><a class="prev" rel="prev" href="/wmn-runbooks/reference/format.html"><span class="dir">Previous</span>The document format</a><a class="next" rel="next" href="/wmn-runbooks/runbooks/inspect-a-machine.html"><span class="dir">Next</span>Inspect a machine</a></nav>
+</article></main>
+</div>
+<footer class="site-footer"><span class="sf-brand"><span class="brand-dot" aria-hidden="true"></span>Published with wmn</span><span class="sf-info">6 code blocks, 6 can run in your browser</span></footer>
+<script type="module" src="/wmn-runbooks/assets/run/wmn-run.js"></script>
+</body>
+</html>
