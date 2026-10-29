@@ -18,9 +18,9 @@ Site: https://threadedstack.github.io/wmn-runbooks/
 With the `wmn` command and an engine folder (the machine images and the WebAssembly engine):
 
 ```
-wmn publish . --out ../site --runnable --snapshot --engine ENGINE_DIR \
+wmn publish . --out ../site --runnable --engine ENGINE_DIR \
   --host github-pages --base /wmn-runbooks/ --search
 wmn publish --check ../site --host github-pages --base /wmn-runbooks/
 ```
 
-For Netlify use `--host netlify --base /`. The built site is not committed to this repository.
+For Netlify use `--host netlify --base /`. Every runnable publish carries the machines' base snapshots. `--search` needs Pagefind (`pagefind_extended` on PATH, or `WMN_PAGEFIND`). The built site is not committed to this repository.
