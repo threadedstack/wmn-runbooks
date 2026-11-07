@@ -45,7 +45,18 @@ jobs:
           else base="https://github.com/threadedstack/wmn-releases/releases/latest/download"; fi
           curl -fsSL "$base/install.sh" | WMN_INSTALL_BASE="$base" WMN_INSTALL_DIR="$HOME/.local/bin" sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/wmn" --version
+          v="$("$HOME/.local/bin/wmn" --version | awk '{print $2}')"
+          echo "wmn $v"
+          # the engine folder this release was built with (the release uploads it beside the binary)
+          eng="$RUNNER_TEMP/engine"
+          mkdir -p "$eng"
+          curl -fsSL "$base/wmn-engine-$v.tar.gz" -o "$RUNNER_TEMP/engine.tar.gz"
+          want="$(curl -fsSL "$base/wmn-engine-$v.tar.gz.sha256" | awk '{print $1}')"
+          got="$(shasum -a 256 "$RUNNER_TEMP/engine.tar.gz" | awk '{print $1}')"
+          [ "$want" = "$got" ] || { echo "the engine download does not match its sha256" >&2; exit 1; }
+          tar -C "$eng" -xzf "$RUNNER_TEMP/engine.tar.gz"
+          rm "$RUNNER_TEMP/engine.tar.gz"
+          echo "WMN_ENGINE_DIR=$eng" >> "$GITHUB_ENV"
 
       - name: Install the Firebase CLI
         run: npm install -g firebase-tools@15.16.0
