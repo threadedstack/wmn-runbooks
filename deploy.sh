@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Deploys the runbooks site to Firebase Hosting: the default site of project wmn-runbooks (https://wmn-runbooks.web.app).
-# The same steps as wmn-claude-code/deploy.sh and wmn-doom/deploy.sh:
+# Deploys the runbooks site to Firebase Hosting: the default site of project wmn-runbooks (https://wmn-runbooks.web.app,
+# custom domain https://runbooks.threadedstack.com). The same steps as wmn-claude-code/deploy.sh and wmn-doom/deploy.sh:
 #   1. build once with the host's header file (firebase.json), aimed at this site only;
 #   2. stamp the build with wmn-runbooks-version.json (this repo's commit);
 #   3. copy the live site to the "previous" channel, deploy, and check the site serves the new version;
@@ -14,12 +14,9 @@ project=wmn-runbooks
 site=wmn-runbooks
 url="https://$site.web.app"
 version="$(git -C "$here" rev-parse HEAD)"
-wmn="${WMN_BIN:-$(command -v wmn || true)}"
-[ -n "$wmn" ] || { echo "deploy.sh: no wmn on PATH; set WMN_BIN to the wmn binary" >&2; exit 1; }
 [ -z "$(git -C "$here" status --porcelain --untracked-files=no)" ] || { echo "deploy.sh: commit your changes first (the site is stamped with the commit)" >&2; exit 1; }
 
-rm -rf "$out"
-"$wmn" publish "$here" --out "$out" --runnable --host firebase --base / ${WMN_ENGINE_DIR:+--engine "$WMN_ENGINE_DIR"}
+"$here/build.sh" "$out" --host firebase --base /
 python3 - "$out/firebase.json" "$site" <<'PYEOF'
 import json, sys
 p, site = sys.argv[1], sys.argv[2]

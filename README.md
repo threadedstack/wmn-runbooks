@@ -15,12 +15,13 @@ Site: https://threadedstack.github.io/wmn-runbooks/
 
 ## Build the site
 
-With the `wmn` command and an engine folder (the machine images and the WebAssembly engine):
+The site is live at https://runbooks.threadedstack.com (Firebase Hosting, the default site of project `wmn-runbooks`). Every wmn release rebuilds and deploys it on GitHub Actions (`.github/workflows/deploy.yml`, also on a push to `main`), the same way as wmn-claude-code and wmn-doom: the release's Linux wmn binary and engine folder, then `./deploy.sh`.
 
-```
-wmn publish . --out ../site --runnable --engine ENGINE_DIR \
-  --host github-pages --base /wmn-runbooks/ --search
-wmn publish --check ../site --host github-pages --base /wmn-runbooks/
+By hand, with the `wmn` command:
+
+```sh
+./build.sh                    # writes ../wmn-runbooks-site (WMN_ENGINE_DIR picks the engine folder, default wmn's own)
+./deploy.sh                   # builds for Firebase, deploys, checks the live version, rolls back on failure
 ```
 
-For Netlify use `--host netlify --base /`. Every runnable publish carries the machines' base snapshots. `--search` needs Pagefind (`pagefind_extended` on PATH, or `WMN_PAGEFIND`). The built site is not committed to this repository.
+The built site is not committed to this repository.
